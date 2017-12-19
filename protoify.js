@@ -7,7 +7,7 @@ let limit = 100;
 let flags = [];
 
 async function run( args ) {
-    
+    'use strict';
     try {
         
         if( args[0] === ('-h') ) {
