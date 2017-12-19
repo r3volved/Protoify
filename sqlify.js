@@ -1,10 +1,12 @@
 const fs = require('fs');
 let infile = '';
 let outfile = '';
+let outstream = '';
 let template = '';
 let ti = 0;
 let limit = 100;
 let flags = [];
+let outdata = "";
 
 async function run( args ) {
     
@@ -33,21 +35,13 @@ async function run( args ) {
                limit = args[3] || args[2];
             }
             
-            if( flags.includes('o') ) {
-                outfile = fs.createWriteStream('./'+outfile);
-            }            
-            
         }
                 
         let contents = await fs.readFileSync( infile );
-        //contents = JSON.parse(contents);
+        contents = contents.toString();
         
-        await parse( contents.toString() );
-        
-        if( flags.includes('o') ) {
-            outfile.end();
-        }
-        
+        await parse( contents );
+                        
     } catch(e) {
         console.error(e.message);
     }
@@ -56,23 +50,180 @@ async function run( args ) {
 
 async function output( txt ) {
     
-    if( flags.includes('o') ) { outfile.write(`${txt}\n`); } 
+    if( flags.includes('o') ) { outstream.write(`${txt}\n`); } 
+    outdata += `${txt}\n`;
+    
     console.info( txt );
         
+}
+
+async function getEnums( data ) {
+    
+    try {
+        let enums = [];
+        for( let i = 0; i < data.length; ++i ) {
+            if( data[i].trim().match(/enum\s\w+\s*\{/gi) ) {
+                let ename = data[i].trim().replace(/enum\s(\w+)\s*\{/gi, '$1');
+                enums.push(ename);
+                continue;
+            }
+        }  
+        return enums;
+    } catch(e) {
+        throw e;
+    }
+    
+}
+
+async function getTables( data ) {
+    
+    try {
+        let tables = [];
+        for( let i = 0; i < data.length; ++i ) {
+            if( data[i].trim().match(/message\s\w+\s*\{/gi) ) {
+                let tname = data[i].trim().replace(/message\s+(\w+)\s*\{/gi,'$1')
+                if( tname.includes('Get') || tname.includes('Rpc') ) { continue; }
+                tables.push(tname);
+                continue;
+            }
+        }  
+        return tables;
+    } catch(e) {
+        throw e;
+    }
+    
+}
+
+async function getKeys( data, tables ) {
+    
+    try {        
+        let keys = new Map();
+        let oopen = false;
+        let table = '';
+        let fields = [];
+        
+        for( let i = 0; i < data.length; ++i ) {
+            
+            if( data[i].trim() === "" || data[i].trim().startsWith('//') || data[i].trim().match('syntax = \"proto3\"') ) { continue; }     
+            if( data[i].trim().match(/message\s\w+\s*\{/gi) ) {
+                let tableName = data[i].trim().replace(/message\s+(\w+)\s*\{/gi,'$1')
+                if( !tables.includes(tableName) ) { continue; }
+
+                table = tableName;
+                oopen = true;
+                continue;
+            }
+            
+            if( oopen ) {
+            
+                if( data[i].trim().match('}') ) { 
+
+                    keys.set(table, fields);
+                    oopen = false;    
+                    fields = [];
+                    continue; 
+                    
+                }
+                
+                let fname = data[i].replace(/["repeated"\s]*\w+\s(\w+)\s=.*/g,'$1').trim();
+                if( fname.includes('unknown_') || fname.includes('empty_') ) { continue; }
+                
+                let tmpname = fname.split(/_/g);
+                for( let n = 1; n < tmpname.length; ++n ) {
+                    tmpname[n] = tmpname[n].charAt(0).toUpperCase() + tmpname[n].slice(1);                    
+                }
+                fname = tmpname.join('');
+                keys.push(fname);
+                                
+            }
+            
+        }
+        return keys;
+    } catch(e) {
+        throw e;
+    }
+    
+}
+
+async function getPKeys( data, tables ) {
+    
+    try {        
+        let keys = new Map();
+        let oopen = false;
+        let table = '';
+        let fields = [];
+        
+        for( let i = 0; i < data.length; ++i ) {
+            
+            if( data[i].trim() === "" || data[i].trim().startsWith('//') || data[i].trim().match('syntax = \"proto3\"') ) { continue; }     
+            if( data[i].trim().match(/message\s\w+\s*\{/gi) ) {
+                let tableName = data[i].trim().replace(/message\s+(\w+)\s*\{/gi,'$1')
+                if( !tables.includes(tableName) ) { continue; }
+
+                table = tableName;
+                oopen = true;
+                continue;
+            }
+            
+            if( oopen ) {
+            
+                if( data[i].trim().match('}') ) { 
+
+                    keys.set(table, fields);
+                    oopen = false;    
+                    fields = [];
+                    continue; 
+                    
+                }
+                
+                let fname = data[i].replace(/["repeated"\s]*\w+\s(\w+)\s=.*/g,'$1').trim();
+                if( fname.includes('unknown_') || fname.includes('empty_') ) { continue; }
+                
+                let tmpname = fname.split(/_/g);
+                for( let n = 1; n < tmpname.length; ++n ) {
+                    tmpname[n] = tmpname[n].charAt(0).toUpperCase() + tmpname[n].slice(1);                    
+                }
+                fname = tmpname.join('');
+                
+                if( fname.includes("Id") || fname === "id" ) {
+                    keys.push(fname);
+                }
+                
+            }
+            
+        }
+        return keys;
+    } catch(e) {
+        throw e;
+    }
+    
 }
 
 async function parse( data ) {
 
     try {
     
+        data = data.split(/\n/);
+
+        let enums = await getEnums( data );
+        let tables = await getTables( data );
+        
+        let keys = await getKeys( data, tables );
+        let pkeys = await getPKeys( data, tables );
+
+        if( flags.includes('o') ) {
+            outstream = fs.createWriteStream('./'+outfile+'.sql');
+        }            
+        
         let oopen = false; 
         
-        data = data.split(/\n/);
         for( let i = 0; i < data.length; ++i ) {
         
-            if( data[i].trim().match('syntax = \"proto3\"') ) { continue; }     
+            if( data[i].trim() === "" || data[i].trim().startsWith('//') || data[i].trim().match('syntax = \"proto3\"') ) { continue; }     
+            
             if( data[i].trim().match(/message\s\w+\s*\{/gi) ) {
                 let tableName = data[i].trim().replace(/message\s+(\w+)\s*\{/gi,'$1')
+                if( !tables.includes(tableName) ) { continue; }
                 await output( 'CREATE TABLE IF NOT EXISTS `'+tableName+'` (' );
                 oopen = true;
                 continue;                
@@ -81,30 +232,63 @@ async function parse( data ) {
             if( oopen ) {
             
                 if( data[i].trim().match('}') ) { 
+
                     oopen = false;    
                     
-                    await output(' '.repeat(2)+'`lastUpdated` TIMESTAMP NULL,');
-                    await output(' '.repeat(2)+'PRIMARY KEY (``)');
+                    await output(' '.repeat(2)+'`lastUpdated` TIMESTAMP NULL,');                    
+                    if( pkey.length > 0 ) {
+                        await output(' '.repeat(2)+'PRIMARY KEY (`'+pkey.join(', ')+'`)');
+                    } else {
+                        await output(' '.repeat(2)+'PRIMARY KEY (`'+keys.join(', ')+'`)');
+                    }
+                    pkey = [];
+                    keys = [];
+                    
                     await output(') ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;');
                     await output('/*');
-                    await output('------------------------------------------------------');
-                    await output('*/');                    
+                    await output(' * ------------------------------------------------------');
+                    await output(' */');                    
                     continue; 
+                    
                 }
                 
                 let ftype = data[i].replace(/["repeated"\s]*(\w+)\s\w+\s=.*/g,'$1').trim();
                 let fname = data[i].replace(/["repeated"\s]*\w+\s(\w+)\s=.*/g,'$1').trim();
                 
-                ftype = ftype === "string" ? "varchar(128)" : ftype;
-                ftype = ftype === "int32" ? "int(32)" : ftype;
-                ftype = ftype === "int64" ? "int(64)" : ftype;
+                if( fname.includes('unknown_') || fname.includes('empty_') ) { continue; }
                 
+                let tmpname = fname.split(/_/g);
+                for( let n = 1; n < tmpname.length; ++n ) {
+                    tmpname[n] = tmpname[n].charAt(0).toUpperCase() + tmpname[n].slice(1);                    
+                }
+                fname = tmpname.join('');
+                if( fname.includes("Id") || fname === "id" ) {
+                    pkey.push(fname);
+                } else {
+                    keys.push(fname);
+                }
+                                
+                ftype = ftype === "string" ? "varchar(128)" : ftype;
+                ftype = ftype.includes("int32") ? "int(32)" : ftype;
+                ftype = enums.includes(ftype) ? "int(32)" : ftype; //turn enums into int 
+                ftype = ftype.includes("int64") ? "int(64)" : ftype;
+                                
                 await output(' '.repeat(2)+'`'+fname+'` '+ftype+' COLLATE utf8_bin NULL,');                
                                 
-            }             
+            }
             
         }
-    
+        
+        console.log( enums.length );
+
+        console.log(enums.join('\n'));
+        
+        if( flags.includes('o') ) {
+            await outstream.end();
+        }
+
+        
+        
     } catch(e) {
         throw e;
     }
