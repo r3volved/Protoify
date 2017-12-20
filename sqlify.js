@@ -207,7 +207,7 @@ async function getFields( data ) {
                 } else if( ftype === "string" ) {
                     field.type = "VARCHAR";
                     field.size = 128;                
-                } else if( ftype === "boolean" ) {
+                } else if( ftype === "bool" ) {
                     field.type = "BOOLEAN";
                     field.size = 0;                
                 } else if( template.tnames.includes(ftype) ) {
