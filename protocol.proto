@@ -1,14 +1,137 @@
 syntax = "proto3";
 
+
+// ** RPC REQUEST ENVELOPE **
+message RpcRequest {
+    string service_name = 4;            // "ContentRpc", eg
+    string method_name = 5;             // "GetMetadata", eg
+    bytes payload = 6;                  // method parameters
+    string auth_id = 7;                 // after login
+    string auth_token = 8;              // after login
+    int32 client_version = 9;
+    string platform = 12;               // "Android"
+    string region = 13;                 // "ROW" = rest of world
+    string client_external_version = 14;
+    string client_internal_version = 15;
+    string request_id = 16;             // unique UUID per request
+    int32 accept_encoding = 17;         // 1 for GZIP
+    int64 current_client_time = 20;     // seconds since epoch
+    string timezone = 22;               // "AEST" eg
+    string carrier = 24;                // eg "310260" for T-Mobile US
+    string network_access = 25;         // always "C"
+    string hardware_id = 26;            // always "2363"
+    string android_id = 29;             // 16 hex digits, lower case
+    int32 jailbroken_flag = 30;         // always 1
+    string device_model = 33;           // "unknown Android SDK built for x86_64" (device model)
+    string device_id = 34;              // 64 hex digits, lower case
+}
+// Response for RpcRequest
+message RpcResponse {
+    uint64 current_server_time = 2; // not always present
+    bytes responseData = 4;         // if responseCode == 1
+    uint32 responseCode = 5;        // 1 = "OK", 51 = Client Restart, 
+    string errorMessage = 6;        // if responseCode != 1
+    enum ResponseCode {
+        default                     = 0;
+        ok                          = 1;
+        error                       = 2;
+        sessionExpired              = 3;
+        authFailed                  = 4;
+        suspended                   = 12;
+        invalidClientVersion        = 50;
+        forceClientRestart          = 51;
+    }
+}
+
+
+// ** RPC AUTH REQUEST - DoAuthGuest, DoAuthGoogle **
+message AuthRpc {
+    message DoAuthGuest {
+        string deviceId = 1;    // 32 hex digits, lower case
+        string platform = 2;    // "Android"
+        string language = 3;    // "en"
+        string playerName = 4;
+        string apkName = 5;     // "com.ea.game.starwarscapital_row"
+        string region = 6;      // "ROW"
+        uint32 timeOffset = 7;  // in minutes, from UTC-10
+    }
+    message DoAuthGoogle {
+        string oauthToken = 1;
+        string platform = 2;    // "Android"
+        string language = 3;    // "en"
+        string apkName = 5;     // "com.ea.game.starwarscapital_row"
+        string guestId = 7;     // ?
+        string region = 8;      // "ROW"
+        sint32 timeOffset = 10; // in minutes, from UTC-10
+    }
+}
+// Response for AuthRpc/DoAuthGuest
+message AuthResponse {
+    string playerId = 1;      //DONE
+    string sessionId = 2;     //DONE
+}
+
+
+// ** RPC CONTENT REQUEST - GetMetaData **
+message ContentRpc {
+    message GetMetadata {
+        message GetVersion {
+            string osName = 2;          // "Android"
+            string sdkVersion = 3;      // "unknown Android SDK built for x86_64"
+            string osVersion = 4;       // "Android OS 7.1.1 / API-25 (NYC/3756122)"
+            uint32 n2002 = 5;           // always 2002  - system memory
+            uint32 n512 = 6;            // always 512   - graphics memory
+            string deviceName = 7;      // "Android Emulator OpenGL ES Translator (Intel Iris OpenGL Engine)"
+            string deviceVendor = 8;    // "Google (Intel Inc.)"
+            string openGLVersion = 9;   // "OpenGL ES 2.0 (2.1 INTEL-10.14.58)"
+            string cpuVersion = 10;     // "Intel x86 SSE3"
+            uint32 n2 = 11;             // always 2     (processor count)
+            string apkName = 12;        // "com.ea.game.starwarscapital_row"
+            string gameVersion = 13;    // "0.8.12"
+            string buildVersion = 14;   // "0.8.225590"
+            string region = 15;         // always "ROW"
+        }
+        GetVersion version = 1;
+    }
+}
+// Response for ContentRpc/GetMetadata
+message Metadata {
+    map<string,string> settings = 1;                //DONE
+//    bytes something2 = 2;                           //NULL ?
+//    bytes something3 = 3;                           //NULL ?
+    int32 asset_version = 4;                        //NULL ?
+    string asset_subpath = 5;                       //NULL ?
+    string tex_format = 6;                          //NULL ?
+    int64 server_timestamp = 7;                     //DONE
+    bool debug_mode = 8;                            //DONE
+    string latest_localization_bundle_version = 9;  //DONE
+    string latest_gamedata_version = 10;            //DONE
+    int32 resource_cache_memory_limit = 11;         //DONE
+    string gamedata_revision = 12;                  //DONE
+    bool channel_server_enabled = 13;               //DONE
+    string channel_server_endpoint = 14;            //DONE
+}
+
+
+// ** RPC GAME REQUEST - GetGameData, GetLocalizationBundle **
+message GameRpc {
+    message GetGameData {
+        string version = 1;             // latest_gamedata_version from MetaData 
+        string device_platform = 2;     // 'Android'
+    }
+    message GetLocalizationBundle {
+        string version = 1;             // latest_localization_bundle_version from MetaData
+    }
+}
 // Response for GameRpc/GetGameData
 message GameData {
-    repeated UnitDef units = 1;                                 //DONE
+    repeated Unit units = 1;                                 //DONE
     repeated BattleEnvironment battle_environments = 2;         //DONE
     repeated XpTable xp_table = 3;                              //DONE
 //    repeated string unknown_null4 = 4;                          //NULL ?
 //    repeated string unknown_null5 = 5;                          //NULL ?
 //    repeated string unknown_null6 = 6;                          //NULL ?
-    repeated CraftingMaterialDef material = 7;                  //DONE
+    repeated CraftingMaterial material = 7;                  //DONE
     repeated Recipe recipe = 8;                                 //DONE
     repeated StatProgression stat_progression = 9;              //DONE
     repeated Category category = 10;                            //DONE
@@ -18,38 +141,65 @@ message GameData {
     repeated SkillDefinition skill = 14;                        //DONE
 //    repeated string unknown_null15 = 15;                        //NULL ?
     repeated EventSampling event_sampling = 16;                 //DONE
-    repeated EquipmentDef equipment = 17;                       //DONE
-    repeated WarDef war_definition = 18;                        //DONE
+    repeated Equipment equipment = 17;                       //DONE
+    repeated War war_definition = 18;                        //DONE
     repeated TargetingSet targeting_set = 19;                   //DONE
     repeated Ability ability = 20;                              //DONE
     repeated Effect effect = 21;                                //DONE
     repeated Requirement requirement = 22;                      //DONE
     repeated PowerUpBundle power_up_bundle = 23;                //DONE
-    GuildBannerDef guild_banner = 24;                           //DONE
+    GuildBanner guild_banner = 24;                           //DONE
 //    repeated string undefined_null = 25;                        //NULL ?
     repeated GuildRaidConfig raid_config = 26;                  //DONE
     repeated GuildRaid guild_raid = 27;                         //DONE
-    repeated StatModSetDefinition stat_mod_set = 28;            //DONE
-    repeated StatModDefinition stat_mod = 29;                   //DONE
+    repeated ModSet mod_sets = 28;            //DONE
+    repeated ModStat mod_stats = 29;                   //DONE
 //    repeated StatModUpdaterDefinition stat_mod_updater = 30;    //NULL ?
 //    repeated DecimalTable decimal_table = 31;                   //NULL ?
-    repeated GearDefinitions gear = 32;                         //DONE
+    repeated Gear gear = 32;                         //DONE
     repeated PointsMap point_map = 33;                          //DONE
     repeated HomeData home = 34;                                //DONE
-    repeated string null_string = 35;                           //DONE
+//    repeated string null_string = 35;                           //DONE
     repeated TerritoryBattleEvent territory_battle_events = 36; //DONE
     repeated TerritoryWars territory_wars = 37;                 //DONE
 }
+// Response for GameRpc/GetLocalizationBundle
+message ZipFile {
+    bytes zipped = 1;   //DONE
+}
 
+
+// ** RPC GUILD REQUEST - GetGuildData **
+message GuildRpc {
+    message GetInitialData {
+        uint32 n1 = 1;          // 1
+    }    
+    message GetGuildData {
+        string guild_id = 1;    //DONE
+        string player_id = 2;   //DONE
+    }
+}
+
+
+// ** RPC PLAYER REQUEST - GetPlayerProfile **
+message PlayerRpc {
+    message GetInitialData {
+        uint32 n1 = 1;          // 1
+    }    
+    message GetPlayerProfile {
+        string player_id = 1;   //DONE - /\d{9}/
+        string ally_code = 2;   //DONE - digits only, "0" if player_id is specified 
+    }
+}
 // Response for PlayerRpc/GetPlayerProfile
-message PlayerProfile {
+message Player {
     string name = 1;                      //DONE
     int32 level = 2;                      //DONE
 //    bytes pvp_wins = 3;                   //NULL ?
 //    bytes pvp_losses = 4;                 //NULL ?
 //    int32 pvp_rank = 5;                   //NULL ?
     int64 ally_code = 6;                  //DONE
-    string player_id = 7;                 //DONE
+    string player_id = 7;                        //DONE
     repeated Character characters = 8;    //DONE
 //    bytes null9 = 9;                      //NULL ?
     repeated PlayerStat stats = 10;       //DONE
@@ -69,7 +219,7 @@ message PlayerProfile {
 
 // [[ A ]]
 message Ability {
-   string id = 1;                                   //DONE
+   string ability_id = 1;                                   //DONE
    string name_key = 2;                             //DONE
    string desc_key = 3;                             //DONE
 //   string unknown_null4 = 4;                        //NULL ?
@@ -93,7 +243,7 @@ message Ability {
    int32 available = 22;                            //DONE
 }
 message AbilityReference {
-   string id = 1;                 //DONE
+   string ability_id = 1;                 //DONE
    UnitTier required_tier = 2;    //DONE
    Rarity required_rarity = 3;    //DONE
    int32 override = 4;            //DONE
@@ -107,8 +257,8 @@ message AbilityTier {
    repeated EffectReference effect_reference = 6;   //DONE
 }
 message ActionLink {
-   string link = 1;                     //DONE
-   ActionLinkType type = 2;             //DONE
+   string link = 1;
+   ActionLinkType type = 2;
 }
 message ArenaSquad {
    repeated UnitKey squad_units = 1;    //DONE
@@ -116,8 +266,8 @@ message ArenaSquad {
 
 // [[ B ]]
 message BattleCondition {
-   ConditionType condition_type = 1;    //DONE
-   string condition_value = 2;          //DONE
+   ConditionType condition_type = 1;
+   string condition_value = 2;
 }
 message BattleEnvironment {
    string prefab = 1;                   //DONE
@@ -125,7 +275,7 @@ message BattleEnvironment {
    repeated string audio_package = 3;   //DONE
 }
 message BucketItem {
-   string id = 1;                       //DONE
+   string item_id = 1;                       //DONE
    ItemType type = 2;                   //DONE
    int32 weight = 3;                    //DONE
    int32 minQuantity = 4;               //DONE
@@ -143,13 +293,13 @@ message CampaignElementIdentifier {
 
 // [[ C ]]
 message Category {
-   string id = 1;               //DONE
+   string category_id = 1;               //DONE
    string desc_key = 2;         //DONE
    bool visible = 3;            //DONE
    CombatType ui_filter = 4;    //DONE
 }
 message Challenge {
-   string id = 1;                         //DONE
+   string challenge_id = 1;                         //DONE
    ChallengeType type = 2;                //DONE
    string name_key = 3;                   //DONE
    string desc_key = 4;                   //DONE
@@ -164,7 +314,7 @@ message Challenge {
    float reward_ratio = 13;               //DONE
 }
 message Character {
-    string id = 1;                              //DONE
+    string character_id = 1;                              //DONE
     string name = 2;                            //DONE
 //    bytes null3 = 3;                            //NULL ?
 //    bytes null4 = 4;                            //NULL ?
@@ -179,15 +329,34 @@ message Character {
 //    bytes null13 = 13;                          //NULL ?    
 //    bytes null14 = 14;                          //NULL ?
 //    bytes null15 = 15;                          //NULL ?        
-    map<string,int32> skills = 16;              //DONE
+//    map<string,int32> skills = 16;              //DONE
+    repeated Skill skills = 16;
 //    repeated Stat unit_stat = 17;               //NULL ?
-    map<string,int32> equipment = 18;           //DONE
+    repeated GearEquipped gear = 18;           //DONE
     uint32 gear_level = 19;                     //DONE
 //    repeated string equipped_stat_mod_old = 20; //NULL ?
-    repeated Mod mods = 21;                     //DONE
+    repeated CharacterMod mods = 21;                     //DONE
 }
-message CraftingMaterialDef {
-   string id = 1;                                     //DONE
+message CharacterMod {
+    string character_mod_id = 1;              //DONE
+    string definition = 2;                    //DONE - set|dots|slot
+//    bytes null3 = 3;                          //NULL ?
+    uint32 level = 4;                         //DONE
+    ModStatTier quality = 5;                  //DONE   
+//    bytes null6 = 6;                          //NULL ?
+//    bytes null7 = 7;                          //NULL ?
+//    bytes null8 = 8;                          //NULL ?    
+    map<int32,int64> sell_value = 9;          //DONE
+    map<int32,int64> remove_cost = 10;        //DONE
+    bool locked = 11;                         //DONE
+    CharacterModStat primary_stat = 12;                //DONE
+    repeated CharacterModStat secondary_stat = 13;     //DONE
+    int32 total_xp = 14;                      //DONE
+//    CurrencyItem level_cost = 15;
+    map<int32,int64> level_cost = 15;        //DONE
+}
+message CraftingMaterial {
+   string crafting_material_id = 1;                                     //DONE
    string name_key = 2;                               //DONE
    string desc_key = 3;                               //DONE
    string icon_key = 4;                               //DONE
@@ -224,7 +393,7 @@ message CurrencyItem {
 
 // [[ D ]]
 message DecimalTable {
-   string id = 1;                   // [default = ""];
+   string decimal_table_id = 1;                   // [default = ""];
    repeated DecimalTableRow row = 2;
 }
 message DecimalTableRow {
@@ -234,7 +403,7 @@ message DecimalTableRow {
 
 // [[ E ]]
 message Effect {
-   string id = 1;                                   //DONE
+   string effect_id = 1;                                   //DONE
    EffectType type = 2;                             //DONE
 //   string unknown_null3 = 3;                        //NULL ?
 //   string unknown_null4 = 4;                        //NULL ?
@@ -269,7 +438,7 @@ message Effect {
 //   int32 null34 = 34;                               //NULL ?
 }
 message EffectReference {
-   string id = 1;                       //DONE
+   string effect_id = 1;                       //DONE
    int32 context_index = 2;             //DONE
    int32 max_bonus_move = 3;            //DONE
 }
@@ -294,8 +463,8 @@ message EffectTargetCategoryCriteria {
    bool exclude = 1;                   // [default = false];
    repeated string category_id = 2;
 }
-message EquipmentDef {
-   string id = 1;                                       //DONE
+message Equipment {
+   string equipment_id = 1;                                       //DONE
    string name_key = 2;                                 //DONE
    string icon_key = 3;                                 //DONE
    int32 required_level = 4;                            //DONE
@@ -311,48 +480,48 @@ message EquipmentDef {
    repeated LookupActionLink action_link_lookup = 14;   //DONE
    int32 some_enum = 15;                                //??
 }
-message Equipped {
-    string gear_id = 1;
-    uint32 slot = 2;
-}
 message EventSampling {
-   string id = 1;                   //DONE
+   string event_id = 1;                   //DONE
    int32 spender_value = 2;         //DONE
    int32 non_spender_value = 3;     //DONE
 }
 
 // [[ F ]]
 // [[ G ]]
+message Gear { 
+   GearDefinition item = 1;    //DONE
+}
+message GearEquipped {
+    string gear_id = 1;
+    int32 slot = 2;
+}
 message GearDefinition {
-   string id = 1;               //DONE
-//   int32 unknown_id = 2;        //NULL ? Always 11
+   string equipment_id = 1;               //DONE
+//   int32 unknown_int = 2;        //NULL ? Always 11
 //   string unknown_null = 3;     //NULL ?
 //   int32 inknown_id2 = 4;       //NULL ? Always 1
 //   int32 inknown_id3 = 5;       //NULL ? Always 1
 }
-message GearDefinitions { 
-   GearDefinition item = 1;    //DONE
+message GuildBannerColor {
+   string guild_banner_color_id = 1;                                    //DONE
+   string tint_color = 2;                                               //DONE
+   string background_color = 3;                                         //DONE
 }
-message GuildBannerColorDef {
-   string id = 1;                   //DONE
-   string tint_color = 2;           //DONE
-   string background_color = 3;     //DONE
+message GuildBanner {
+   repeated string logo = 1;                                            //DONE
+   repeated GuildBannerColor colors = 2;                                //DONE
+   repeated GuildBannerIcon icons = 3;                                  //DONE
 }
-message GuildBannerDef {
-   repeated string logo = 1;                        //DONE
-   repeated GuildBannerColorDef color = 2;          //DONE
-   repeated GuildBannerLogoDef logoDefinition = 3;  //DONE
-}
-message GuildBannerLogoDef {
-   string id = 1;               //DONE
-   string logo = 2;             //DONE
-   string ui_logo = 3;          //DONE
+message GuildBannerIcon {
+   string guild_banner_icon_id = 1;                                     //DONE
+   string icon_texture = 2;                                             //DONE
+   string icon_ui = 3;                                                  //DONE
 }
 message GuildExchangeItem {
-   BucketItem item = 1;         //DONE
+   BucketItem item = 1;                                                 //DONE
 }
 message GuildRaid {
-   string id = 1;                   //DONE
+   string guild_raid_id = 1;                   //DONE
    int32 priority = 2;              //DONE
    string name_key = 3;             //DONE
    string summary_key = 4;          //DONE
@@ -367,7 +536,7 @@ message GuildRaid {
    string portrait_icon = 13;       //DONE
 }
 message GuildRaidConfig {
-   string id = 1;                                       //DONE
+   string guild_raid_id = 1;                                       //DONE
    GuildRaidType raid_type = 2;                         //DONE
    GuildRaidRosterRefreshType roster_refresh_type = 3;  //DONE
    GuildRaidRosterRefresh roster_refresh = 4;           //DONE
@@ -380,7 +549,7 @@ message GuildRaidRosterRefresh {
 
 // [[ H ]]
 message HelpEntry {
-   HelpType id = 1;                   //DONE
+   HelpType help_entry_id = 1;                   //DONE
    repeated HelpTile tile = 2;        //DONE
 }
 message HelpTile {
@@ -399,6 +568,11 @@ message HomeData {
 // [[ J ]]
 // [[ K ]]
 // [[ L ]]
+message Localization { 
+    string lang = 1;
+    string text_key = 2;
+    string text_val = 3;
+}
 message LookupActionLink {
    string desk_key = 1;
    ActionLink action_link = 2;
@@ -413,31 +587,44 @@ message MessageDialog {
    string title_key = 1;                   // [default = ""];
    string desc_key = 2;                   // [default = ""];
 }
-message Mod {
-    string id = 1;                            //DONE
-    string definition = 2;                    //DONE - set|dots|slot
-//    bytes null3 = 3;                          //NULL ?
-    uint32 level = 4;                         //DONE
-    StatModTier quality = 5;                  //DONE   
-//    bytes null6 = 6;                          //NULL ?
-//    bytes null7 = 7;                          //NULL ?
-//    bytes null8 = 8;                          //NULL ?    
-    map<int32,int64> sell_value = 9;          //DONE
-    map<int32,int64> remove_cost = 10;        //DONE
-    bool locked = 11;                         //DONE
-    StatModStat primary_stat = 12;            //DONE
-    repeated StatModStat secondary_stat = 13; //DONE
-    int32 total_xp = 14;                      //DONE
-//    CurrencyItem level_cost = 15;
-    map<int32,int64> level_cost = 15;        //DONE
+message ModSetBonus {
+//   string ability_id = 1;           //NULL ?
+   CharacterModStat stat = 2;                   //DONE
+}
+message ModSet {
+   string mod_set_id = 1;                       //DONE
+   string name = 2;                     //DONE
+//   int32 unknown_null = 3;             //NULL ?
+   string icon = 4;                     //DONE
+//   string unknown_null2 = 5;            //NULL ?
+   ModSetBonus complete_bonus = 6;      //DONE
+   ModSetBonus max_level_bonus = 7;     //DONE
+   int32 set_count = 8;                 //DONE
+}
+message CharacterModStat {
+    string mod_stat_id = 1;         //DONE
+    Stat stat = 2;                  //DONE
+    //   string roll = 3;             //NULL ?  
+}
+message ModStat {
+   string mod_stat_id = 1;                                       //DONE
+   ModStatSlot slot = 2;                                //DONE
+   string mod_set_id = 3;                                   //DONE
+   Rarity rarity = 4;                                   //DONE
+   string name_key = 5;                                 //DONE
+   string desc_key = 6;                                 //DONE
+   repeated LookupMission mission_lookup = 7;           //DONE
+   repeated LookupMission raid_lookup = 8;              //DONE
+   repeated LookupActionLink action_link_lookup = 9;    //DONE
+   string level_table_id = 10;                          //DONE
 }
 
 // [[ N ]]
 // [[ O ]]
-message OldWarDef {
+message OldWar {
    CombatType type = 1;                     //DONE
    CampaignNodeDifficulty difficulty = 2;   //DONE
-   repeated WarNodeDef node = 3;            //DONE
+   repeated WarNode node = 3;            //DONE
 }
 
 // [[ P ]]
@@ -462,7 +649,7 @@ message Position {
    string z = 3;                   // [default = ""];
 }
 message PowerUpBundle {
-   string id = 1;                   //DONE
+   string power_up_bundle_id = 1;                   //DONE
    int32 target_level = 2;          //DONE
    UnitTier target_gear_tier = 3;   //DONE
    bool auto_select_tier = 4;       //DONE
@@ -476,7 +663,7 @@ message PvPArena {
 // [[ Q ]]
 // [[ R ]]
 message Recipe {
-   string id = 1;                       //DONE 
+   string recipe_id = 1;                       //DONE 
    string name_key = 2;                 //DONE
    string desc_key = 3;                 //DONE
    string icon_key = 4;                 //DONE
@@ -490,13 +677,13 @@ message Recipe {
 message Requirement {
    EvaluationType eval_type = 1;                    //DONE
    repeated RequirementItem requirement_item = 2;   //DONE
-   string id = 3;                                   //DONE
+   string requirement_id = 3;                       //DONE
    string desc_key = 4;                             //DONE
 }
 message RequirementItem {
-   RequirementType type = 1;     //DONE
-   string id = 2;                //DONE
-   int32 value = 3;              //DONE
+   RequirementType type = 1;                        //DONE
+   string requirement_item_id = 2;                  //DONE
+   int32 value = 3;                                 //DONE
 }
 
 // [[ S ]]
@@ -505,22 +692,22 @@ message Skill {
     uint32 level = 2;
 }
 message SkillDefinition {
-   string id = 1;                           //DONE
-//   bytes null2 = 2;                         //NULL ?
-   string name_key = 3;                     //DONE
-   string icon_key = 4;                     //DONE
+   string skill_id = 1;                             //DONE
+//   bytes null2 = 2;                               //NULL ?
+   string name_key = 3;                             //DONE
+   string icon_key = 4;                             //DONE
    repeated SkillTierDefinition tier = 5;
-   string ability_reference = 6;            //DONE
+   string ability_id = 6;                           //DONE
    int32 type = 7;                         //1 or 2 (2=Level1:Rarity1)??
 }
 message SkillDefinitionReference {
-   string id = 1;               //DONE
+   string skill_id = 1;               //DONE
 //   bytes null2 = 2;             //NULL ?
    UnitTier required_tier = 3;  //DONE
    Rarity required_rarity = 4;  //DONE
 }
 message SkillTierDefinition {
-   string id = 1;                           //DONE
+   string recipe_id = 1;                           //DONE
    int32 required_unit_level = 2;           //DONE
    Rarity required_unit_rarity = 3;         //DONE
    int32 required_equipment_level = 4;     //DONE
@@ -528,10 +715,9 @@ message SkillTierDefinition {
 message Stat {
 //   string id = 1;                     //NULL?
 //   bytes null2 = 2;                   //NULL?
-   UnitStat id = 3;                   //DONE
+   UnitStat stat_id = 3;                   //DONE
 //   int32 stat_value_decimal_old = 4;  //NULL ?
    int64 stat_value_decimal = 5;      //DONE
-   
 }
 message StatDef {
 //   bytes null1 = 1;               //NULL ?
@@ -554,59 +740,8 @@ message StatDef {
 //   bytes null18 = 18;             //NULL ?
    repeated Stat stat = 19;       //DONE
 }
-message StatMod {
-   string id = 1;                   // [default = ""];
-   string definition_id = 2;                   // [default = ""];
-   int32 level = 4;                   // [default = 0];
-   StatModTier tier = 5;                   // [default = STATMODTIER01];
-   CurrencyItem sell_value = 9;
-   CurrencyItem remove_cost = 10;
-   bool locked = 11;                   // [default = false];
-   StatModStat primary_stat = 12;
-   repeated StatModStat secondary_stat = 13;
-   int32 xp = 14;                   // [default = 0];
-   CurrencyItem level_cost = 15;
-}
-message StatModDefinition {
-   string id = 1;                               //DONE
-   StatModSlot slot = 2;                        //DONE
-   string set_id = 3;                           //DONE
-   Rarity rarity = 4;                           //DONE
-   string name_key = 5;                         //DONE
-   string desc_key = 6;                         //DONE
-   repeated LookupMission mission_lookup = 7;   //DONE
-   repeated LookupMission raid_lookup = 8;      //DONE
-   repeated LookupActionLink action_link_lookup = 9;//DONE
-   string level_table_id = 10;                  //DONE
-}
-message StatModSetBonus {
-//   string ability_id = 1;           //NULL ?
-   Stat stat = 2;                   //DONE
-}
-message StatModSetDefinition {
-   string id = 1;                       //DONE
-   string name = 2;                     //DONE
-//   int32 unknown_null = 3;             //NULL ?
-   string icon = 4;                     //DONE
-//   string unknown_null2 = 5;            //NULL ?
-   StatModSetBonus complete_bonus = 6;  //DONE
-   StatModSetBonus max_level_bonus = 7; //DONE
-   int32 set_count = 8;                 //DONE
-}
-message StatModStat {
-   string id = 1;       //DONE
-   Stat stat = 2;       //DONE
-//   string roll = 3;     //NULL ?
-}
-message StatModUpdaterDefinition {
-   string id = 1;                   // [default = ""];
-   StatModUpdaterType type = 2;                   // [default = UPDATETYPESTATTABLE];
-   string table_id = 3;                   // [default = ""];
-   int64 min_increment_value_decimal = 4;                   // [default = 0];
-   int64 max_increment_value_decimal = 5;                   // [default = 0];
-}
 message StatProgression {
-   string id = 1;                   //DONE
+   string stat_progression_id = 1;                   //DONE
 //   bytes null2 = 2;                 //NULL ?
 //   bytes null3 = 3;                 //NULL ?
 //   bytes null4 = 4;                 //NULL ?
@@ -624,17 +759,10 @@ message StatValueRangeNumber {
    int32 value = 1;                   // [default = 0];
    bool inclusive = 2;                   // [default = false];
 }
-message SystemModifier {
-   string id = 1;                   // [default = ""];
-   SystemModifierType type = 2;                   // [default = TIMELIMITED];
-   SystemModified system = 3;                   // [default = SYSTEMNONE];
-   string label_key = 4;                   // [default = ""];
-   TimeLimitedModifier time_modifier = 5;
-}
 
 // [[ T ]]
 message Table {
-   string id = 1;                   // [default = ""];
+   string table_id = 1;                   // [default = ""];
    repeated TableRow row = 2;
 }
 message TableRow {
@@ -642,7 +770,7 @@ message TableRow {
    string value = 2;                   // [default = ""];
 }
 message TargetingSet {
-   string id = 1;                           //DONE
+   string targeting_set_id = 1;                           //DONE
    repeated TargetingWeight weight = 2;     //DONE
 }
 message TargetingWeight {
@@ -669,7 +797,7 @@ message TerritoryData {
 //    repeated Thing unknown_int = 4; //NULL ?
 }
 message TerritoryDetails {
-    string id = 1;                                  //DONE
+    string territory_id = 1;                                  //DONE
 //    string name_key = 2;                            //NULL
     string name_key = 3;                            //DONE
     string summary_key = 4;                         //DONE
@@ -690,11 +818,11 @@ message TerritoryRequirement {
 }
 message TerritoryRequirementKey {
 //    int32 required = 1;       //NULL
-    string id = 2;              //DONE
+    string territory_id = 2;              //DONE
 //    int32 sumamry_key = 3;    //NULL  
 }
 message TerritoryBattleEvent {
-    string id = 1;                              //DONE
+    string territory_battle_event_id = 1;                              //DONE
     string name_key = 2;                        //DONE
     string summary_key = 3;                     //DONE
     string map_key = 4;                         //DONE
@@ -718,8 +846,8 @@ message TimeLimitedModifier {
 }
 
 // [[ U ]]
-message UnitDef {
-   string id = 1;                                           //DONE
+message Unit {
+   string unit_id = 1;                                           //DONE
    string unit_prefab = 2;                                  //DONE
    string thumbnail = 3;                                    //DONE
    string name_key = 4;                                     //DONE
@@ -791,7 +919,7 @@ message UnitDef {
    UnitClass unitClass = 70;                                //DONE
 }
 message UnitKey {
-    string id = 1;
+    string unit_id = 1;
     string name = 2;
     
 }
@@ -803,16 +931,16 @@ message UnitTierDef {
 
 // [[ V ]]
 // [[ W ]]
-message WarDef {
-   string id = 1;                           //DONE
+message War {
+   string war_id = 1;                           //DONE
    CombatType type = 2;                     //DONE
    CampaignNodeDifficulty difficulty = 3;   //DONE
    string daily_reset_cap_key = 4;          //DONE
-   repeated WarNodeDef node = 5;            //DONE
-   OldWarDef old_war_def = 6;               //??
+   repeated WarNode node = 5;            //DONE
+   OldWar old_war = 6;               //??
 }
-message WarNodeDef {
-   string id = 1;                           //DONE
+message WarNode {
+   string war_node_id = 1;                           //DONE
    WarNodeType type = 2;                    //DONE
    CombatType combat_type = 3;              //DONE
    Position position = 4;                   //DONE
@@ -820,7 +948,7 @@ message WarNodeDef {
 
 // [[ X ]]
 message XpTable {
-   string id = 1;                   //DONE
+   string xp_table_id = 1;                   //DONE
 //   repeated XpTableRow row = 2;     //MAPPED
    map<int32,int64> row = 2;        //DONE
 }
@@ -1220,8 +1348,8 @@ enum SquadType {
    SQUAD_STAT_MOD_BATTLES = 31;
    SQUAD_EVENT_DEFENSIVE = 32;
 }
-enum StatModSlot {
-   NO_StatModSlot = 0;
+enum ModStatSlot {
+   NO_ModStatSlot = 0;
    STATMOD_SLOT_01 = 2;
    STATMOD_SLOT_02 = 3;
    STATMOD_SLOT_03 = 4;
@@ -1229,18 +1357,13 @@ enum StatModSlot {
    STATMOD_SLOT_05 = 6;
    STATMOD_SLOT_06 = 7;
 }
-enum StatModTier {
-   NO_StatModTier = 0;
+enum ModStatTier {
+   NO_ModStatTier = 0;
    STATMOD_TIER_01 = 1;
    STATMOD_TIER_02 = 2;
    STATMOD_TIER_03 = 3;
    STATMOD_TIER_04 = 4;
    STATMOD_TIER_05 = 5;
-}
-enum StatModUpdaterType {
-   NO_StatModUpdaterTypeT = 0;
-   UPDATE_TYPE_STAT_TABLE = 1;
-   UPDATE_TYPE_STAT_ROLL = 2;
 }
 enum SystemModified {
    NO_SystemModified = 0;
