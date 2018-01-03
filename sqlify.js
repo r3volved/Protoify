@@ -65,6 +65,7 @@ async function outputTable(obj, name, prefix, suffix) {
         
         //IF FIELD IS FKEY, ADD TO LIST
         if( !!field.fkey ) {
+//console.log( field );
             fks += fks.length === 0 ? 'FOREIGN KEY (`'+field.name+'`) REFERENCES '+field.fkey : ', '+suffix+'FOREIGN KEY (`'+field.name+'`) REFERENCES '+field.fkey;
         }        
         
@@ -175,7 +176,6 @@ async function outputClass(obj, name, prefix, suffix) {
     output += '         collection[depth][key] = collection[depth][key] || [];\n\n';
     output += '         for( let i = 0; i < data.length; ++i ) {\n\n';
     output += '             let inner = [];\n\n';
-    output += '             data[i].id = data[i].id || ++collection.idCount;\n\n';
     
     //IF FOREIGN KEY WAS PASSED, SET IT BEFORE PUSHING OBJECT
     output += '             if( fkey ) {\n';
@@ -187,18 +187,24 @@ async function outputClass(obj, name, prefix, suffix) {
         let field = obj.fields[f];
         if( field.type === "INT" || field.type === "BIGINT" || field.type === "VARCHAR" || field.type === "BOOLEAN" || field.type === "TIMESTAMP" || field.type === "TEXT" ) {
             if( field.name === 'lastUpdated' ) { 
-                output += `             inner.push(moment(Date.now()).format('YYYY-MM-DD HH:mm:ss'));\n\n`; 
+                output += `             inner.push(moment(Date.now()).format('YYYY-MM-DD HH:mm:ss'));\n`; 
             } else {
                 if( field.type === "TEXT" ) {
-                    output += `             inner.push(JSON.stringify(data[i].${field.name}));\n\n`;
+                    output += `             inner.push(JSON.stringify(data[i].${field.name}));\n`;
                 } else {
-                    output += `             inner.push(data[i].${field.name});\n\n`;
+                    output += `             inner.push(data[i].${field.name});\n`;
                 }
+                                
+                if( field.pkey ) {                    
+                    output += `\n             //Cascade this table's primary key to child's foreign key\n`;
+                    output += `             fkey = { "${field.name}":data[i].${field.name} };\n\n`;
+                }
+                
             }
         }
     }
         
-    output += '             collection[depth][key].push(inner);\n';
+    output += '             collection[depth][key].push(inner);\n\n';
     output += '         }\n\n';
 
     output += '         for( let i = 0; i < data.length; ++i ) {\n\n';
@@ -405,7 +411,7 @@ async function getFields( data ) {
                 //GET FIELD NAME AND TYPE
                 let ftype = data[i].replace(/["repeated"\s]*(\w+)\s\w+\s=.*/g,'$1').trim();
                 let fname = data[i].replace(/["repeated"\s]*\w+\s(\w+)\s=.*/g,'$1').trim();
-                if( fname.includes('unknown_') || fname.includes('empty_') ) { continue; }
+                if( fname.includes('undefined') || fname.includes('unknown') || fname.includes('empty') ) { continue; }
                 
                 //TRANSPOSE NAME TO CAMEL-HUMP NOTATION
                 let tmpname = fname.split(/_/g);
@@ -459,8 +465,10 @@ async function getFields( data ) {
                     continue;
                 }                               
                 field.collation = "COLLATE utf8_bin";
-                field.pkey = fname === tname.toLowerCase()+'Id' ? true : false;
-                field.condition = fname === tname.toLowerCase()+'Id' ? "NOT NULL" : "NULL";
+                
+                let fcomp = fname.charAt(0).toUpperCase()+fname.substr(1,fname.length-3);
+                field.pkey = tname === fcomp ? true : false;
+                field.condition = tname === fcomp ? "NOT NULL" : "NULL";
                 
                 //IF FIELD IS A PRIMARY KEY, TRACK IT
                 if( field.pkey ) { pks.push(fname); }                
@@ -468,7 +476,8 @@ async function getFields( data ) {
                 //IF FIELD TYPE IS ANOTHER TABLE, ADD REFERENCE FOR NORMALIZATION
                 if( template.tnames.includes(ftype) ) {
                     let pTable = tname;
-                    let fTable = field.type;           
+                    let fTable = field.type;
+//console.log( tname, field.type );           
                     field.ref = {};
                     field.ref.ptable = { "name":pTable, "keys":[] };
                     field.ref.ftable = { "name":fTable, "keys":[] };
@@ -527,22 +536,16 @@ async function addNormalization( data ) {
             for( let f in template.tables[t].fields ) {
                 
                 let field = template.tables[t].fields[f];
-                if( field.ref && t !== 'GameData' ) {
+                if( field.ref && field.ref.ptable.name.length > 0 && t !== 'GameData' ) {
                     
                     let newField = Object.assign({},template.tables[t].fields[field.ref.ptable.keys[0]]);
+                    if( !newField.name ) { continue; }
                     
-                    //newField.name       = field.ref.ptable.keys[0];
-
-                    //if( t === 'Player' ) {
-                    //    console.log( template.tables[t].fields[field.ref.ptable.keys[0]] );
-                    //}
-                        
-                    //newField.type       = template.tables[t].fields[newField.name].type;
-                    //newField.size       = template.tables[t].fields[newField.name].size;
-                    //newField.collation  = template.tables[t].fields[newField.name].collation;
                     newField.pkey       = false;
                     newField.fkey       = '`'+field.ref.ptable.name+'`(`'+newField.name+'`)';
                     newField.condition  = 'NULL';
+
+console.log( t, f, newField );
                     
                     template.tables[field.ref.ftable.name].fields[newField.name] = Object.assign({},newField);
 

@@ -191,27 +191,6 @@ message PlayerRpc {
         string ally_code = 2;   //DONE - digits only, "0" if player_id is specified 
     }
 }
-// Response for PlayerRpc/GetPlayerProfile
-message Player {
-    string name = 1;                      //DONE
-    int32 level = 2;                      //DONE
-//    bytes pvp_wins = 3;                   //NULL ?
-//    bytes pvp_losses = 4;                 //NULL ?
-//    int32 pvp_rank = 5;                   //NULL ?
-    int64 ally_code = 6;                  //DONE
-    string player_id = 7;                        //DONE
-    repeated Character characters = 8;    //DONE
-//    bytes null9 = 9;                      //NULL ?
-    repeated PlayerStat stats = 10;       //DONE
-    string guild_id = 11;                 //DONE
-    string guild_name = 12;               //DONE
-//    bytes guild_logo = 13;                //NULL ?
-//    bytes guild_logo_background = 14;     //NULL ?
-    string guild_banner_color = 15;       //DONE
-    string guild_banner_logo = 16;        //DONE
-    repeated PvPArena pvp_arena = 17;     //DONE
-}
-
 
 //
 // ** SUPPORTING OBJECTS **
@@ -312,48 +291,6 @@ message Challenge {
    ChallengeClaimType claim_type = 11;    //DONE
    ChallengeRewardType reward_type = 12;  //DONE
    float reward_ratio = 13;               //DONE
-}
-message Character {
-    string character_id = 1;                              //DONE
-    string name = 2;                            //DONE
-//    bytes null3 = 3;                            //NULL ?
-//    bytes null4 = 4;                            //NULL ?
-//    bytes null5 = 5;                            //NULL ?
-//    bytes null6 = 6;                            //NULL ?
-//    bytes null7 = 7;                            //NULL ?
-    Rarity rarity = 8;                          //DONE
-    uint32 level = 9;                           //DONE
-    uint32 total_xp = 10;                       //DONE
-//    bytes null11 = 11;                          //NULL ?
-//    string promotion_recipe_reference = 12;     //NULL ?    
-//    bytes null13 = 13;                          //NULL ?    
-//    bytes null14 = 14;                          //NULL ?
-//    bytes null15 = 15;                          //NULL ?        
-//    map<string,int32> skills = 16;              //DONE
-    repeated Skill skills = 16;
-//    repeated Stat unit_stat = 17;               //NULL ?
-    repeated GearEquipped gear = 18;           //DONE
-    uint32 gear_level = 19;                     //DONE
-//    repeated string equipped_stat_mod_old = 20; //NULL ?
-    repeated CharacterMod mods = 21;                     //DONE
-}
-message CharacterMod {
-    string character_mod_id = 1;              //DONE
-    string definition = 2;                    //DONE - set|dots|slot
-//    bytes null3 = 3;                          //NULL ?
-    uint32 level = 4;                         //DONE
-    ModStatTier quality = 5;                  //DONE   
-//    bytes null6 = 6;                          //NULL ?
-//    bytes null7 = 7;                          //NULL ?
-//    bytes null8 = 8;                          //NULL ?    
-    map<int32,int64> sell_value = 9;          //DONE
-    map<int32,int64> remove_cost = 10;        //DONE
-    bool locked = 11;                         //DONE
-    CharacterModStat primary_stat = 12;                //DONE
-    repeated CharacterModStat secondary_stat = 13;     //DONE
-    int32 total_xp = 14;                      //DONE
-//    CurrencyItem level_cost = 15;
-    map<int32,int64> level_cost = 15;        //DONE
 }
 message CraftingMaterial {
    string crafting_material_id = 1;                                     //DONE
@@ -589,7 +526,7 @@ message MessageDialog {
 }
 message ModSetBonus {
 //   string ability_id = 1;           //NULL ?
-   CharacterModStat stat = 2;                   //DONE
+   PlayerUnitModStat stat = 2;                   //DONE
 }
 message ModSet {
    string mod_set_id = 1;                       //DONE
@@ -600,11 +537,6 @@ message ModSet {
    ModSetBonus complete_bonus = 6;      //DONE
    ModSetBonus max_level_bonus = 7;     //DONE
    int32 set_count = 8;                 //DONE
-}
-message CharacterModStat {
-    string mod_stat_id = 1;         //DONE
-    Stat stat = 2;                  //DONE
-    //   string roll = 3;             //NULL ?  
 }
 message ModStat {
    string mod_stat_id = 1;                                       //DONE
@@ -628,11 +560,78 @@ message OldWar {
 }
 
 // [[ P ]]
+// Response for PlayerRpc/GetPlayerProfile
+message Player {
+    string name = 1;                      //DONE
+    int32 level = 2;                      //DONE
+//    bytes pvp_wins = 3;                   //NULL ?
+//    bytes pvp_losses = 4;                 //NULL ?
+//    int32 pvp_rank = 5;                   //NULL ?
+    int64 ally_code = 6;                  //DONE
+    string player_id = 7;                        //DONE
+    repeated PlayerUnit player_units = 8;    //DONE
+//    bytes null9 = 9;                      //NULL ?
+    repeated PlayerStat player_stats = 10;       //DONE
+    string guild_id = 11;                 //DONE
+    string guild_name = 12;               //DONE
+//    bytes guild_logo = 13;                //NULL ?
+//    bytes guild_logo_background = 14;     //NULL ?
+    string guild_banner_color = 15;       //DONE
+    string guild_banner_logo = 16;        //DONE
+    repeated PvPArena pvp_arena = 17;     //DONE
+}
 message PlayerStat {
     string name = 1;              //DONE
     string description = 2;       //DONE
     int64 value = 3;              //DONE
     int32 order = 4;              //DONE
+}
+message PlayerUnit {
+    string player_unit_id = 1;                              //DONE
+    string name = 2;                            //DONE
+//    bytes null3 = 3;                            //NULL ?
+//    bytes null4 = 4;                            //NULL ?
+//    bytes null5 = 5;                            //NULL ?
+//    bytes null6 = 6;                            //NULL ?
+//    bytes null7 = 7;                            //NULL ?
+    Rarity rarity = 8;                          //DONE
+    uint32 level = 9;                           //DONE
+    uint32 total_xp = 10;                       //DONE
+//    bytes null11 = 11;                          //NULL ?
+//    string promotion_recipe_reference = 12;     //NULL ?    
+//    bytes null13 = 13;                          //NULL ?    
+//    bytes null14 = 14;                          //NULL ?
+//    bytes null15 = 15;                          //NULL ?        
+//    map<string,int32> skills = 16;              //DONE
+    repeated Skill skills = 16;
+//    repeated Stat unit_stat = 17;               //NULL ?
+    repeated GearEquipped gear = 18;           //DONE
+    uint32 gear_level = 19;                     //DONE
+//    repeated string equipped_stat_mod_old = 20; //NULL ?
+    repeated PlayerUnitMod mods = 21;                     //DONE
+}
+message PlayerUnitMod {
+    string player_unit_mod_id = 1;              //DONE
+    string definition = 2;                    //DONE - set|dots|slot
+//    bytes null3 = 3;                          //NULL ?
+    uint32 level = 4;                         //DONE
+    ModStatTier quality = 5;                  //DONE   
+//    bytes null6 = 6;                          //NULL ?
+//    bytes null7 = 7;                          //NULL ?
+//    bytes null8 = 8;                          //NULL ?    
+    map<int32,int64> sell_value = 9;          //DONE
+    map<int32,int64> remove_cost = 10;        //DONE
+    bool locked = 11;                         //DONE
+    PlayerUnitModStat primary_stat = 12;                //DONE
+    repeated PlayerUnitModStat secondary_stat = 13;     //DONE
+    int32 total_xp = 14;                      //DONE
+//    CurrencyItem level_cost = 15;
+    map<int32,int64> level_cost = 15;        //DONE
+}
+message PlayerUnitModStat {
+    string mod_set_id = 1;         //DONE
+    Stat stat = 2;                  //DONE
+    //   string roll = 3;             //NULL ?  
 }
 message PointsDetails {
   string key = 1;
