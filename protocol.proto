@@ -239,9 +239,6 @@ message ActionLink {
    string link = 1;
    ActionLinkType type = 2;
 }
-message ArenaSquad {
-   repeated UnitKey squad_units = 1;    //DONE
-}
 
 // [[ B ]]
 message BattleCondition {
@@ -435,10 +432,6 @@ message Gear {
 message GearItems { 
    Gear gear = 1;    //DONE
 }
-message GearEquipped {
-    string gear_id = 1;
-    int32 slot = 2;
-}
 message GuildBannerColor {
    string guild_banner_color_id = 1;                                    //DONE
    string tint_color = 2;                                               //DONE
@@ -539,7 +532,7 @@ message ModSetBonus {
    ModSetBonusStat stat = 2;                   //DONE
 }
 message ModSetBonusStat {
-    string mod_set_bonus_id = 1;         //DONE
+    string mod_set_bonus_stat_id = 1;         //DONE
     Stat stat = 2;                  //DONE
     //   string roll = 3;             //NULL ?  
 }
@@ -574,16 +567,28 @@ message Player {
 //    int32 pvp_rank = 5;                   //NULL ?
     int64 ally_code = 6;                  //DONE
     string player_id = 7;                        //DONE
-    repeated PlayerUnit player_units = 8;    //DONE
+    repeated PlayerUnit player_unit = 8;    //DONE
 //    bytes null9 = 9;                      //NULL ?
-    repeated PlayerStat player_stats = 10;       //DONE
+    repeated PlayerStat player_stat = 10;       //DONE
     string guild_id = 11;                 //DONE
     string guild_name = 12;               //DONE
 //    bytes guild_logo = 13;                //NULL ?
 //    bytes guild_logo_background = 14;     //NULL ?
     string guild_banner_color = 15;       //DONE
     string guild_banner_logo = 16;        //DONE
-    repeated PvPArena pvp_arena = 17;     //DONE
+    repeated PlayerArena player_arena = 17;     //DONE
+}
+message PlayerArena {
+    int64 combat_type = 1;          //DONE
+    int64 arena_rank = 2;           //DONE
+    PlayerArenaSquad player_arena_squad = 3;     //DONE
+}
+message PlayerArenaSquad {
+   repeated PlayerArenaSquadUnit player_arena_squad_unit = 1;    //DONE
+}
+message PlayerArenaSquadUnit {
+    string player_unit_id = 1;
+    string unit_id = 2;
 }
 message PlayerStat {
     string name = 1;              //DONE
@@ -608,16 +613,20 @@ message PlayerUnit {
 //    bytes null14 = 14;                          //NULL ?
 //    bytes null15 = 15;                          //NULL ?        
 //    map<string,int32> skills = 16;              //DONE
-    repeated Skill skills = 16;
+    repeated PlayerUnitSkill skill = 16;
 //    repeated Stat unit_stat = 17;               //NULL ?
-    repeated GearEquipped gear = 18;           //DONE
+    repeated PlayerUnitGear gear_equipped = 18;           //DONE
     uint32 gear_level = 19;                     //DONE
 //    repeated string equipped_stat_mod_old = 20; //NULL ?
-    repeated PlayerUnitMod mods = 21;                     //DONE
+    repeated PlayerUnitMod player_unit_mod = 21;                     //DONE
+}
+message PlayerUnitGear {
+    string gear_id = 1;
+    int32 slot = 2;
 }
 message PlayerUnitMod {
     string player_unit_mod_id = 1;              //DONE
-    string definition = 2;                    //DONE - set|dots|slot
+    string mod_definition = 2;                    //DONE - set|dots|slot
 //    bytes null3 = 3;                          //NULL ?
     uint32 level = 4;                         //DONE
     ModStatTier quality = 5;                  //DONE   
@@ -627,21 +636,27 @@ message PlayerUnitMod {
     map<int32,int64> sell_value = 9;          //DONE
     map<int32,int64> remove_cost = 10;        //DONE
     bool locked = 11;                         //DONE
-    PlayerUnitModPrimeStat primary_stat = 12;                //DONE
-    repeated PlayerUnitModSecondStat secondary_stat = 13;     //DONE
+    PlayerUnitModStat player_unit_mod_prime_stat = 12;                //DONE
+    repeated PlayerUnitModStat player_unit_mod_second_stat = 13;     //DONE
     int32 total_xp = 14;                      //DONE
 //    CurrencyItem level_cost = 15;
     map<int32,int64> level_cost = 15;        //DONE
 }
-message PlayerUnitModPrimeStat {
-    string mod_set_id = 1;         //DONE
-    Stat stat = 2;                  //DONE
+message PlayerUnitModStat {
+    string mod_stat_definition = 1;         //DONE
+    PlayerUnitModStatDetail mod_stat_details = 2;                  //DONE
     //   string roll = 3;             //NULL ?  
 }
-message PlayerUnitModSecondStat {
-    string mod_set_id = 1;         //DONE
-    Stat stat = 2;                  //DONE
-    //   string roll = 3;             //NULL ?  
+message PlayerUnitModStatDetail {
+//   string id = 1;                     //NULL?
+//   bytes null2 = 2;                   //NULL?
+   UnitStat stat_id = 3;                   //DONE
+//   int32 stat_value_decimal_old = 4;  //NULL ?
+   int64 stat_value = 5;      //DONE
+}
+message PlayerUnitSkill {
+    string skill_id = 1;
+    uint32 level = 2;
 }
 message PointsDetails {
   string key = 1;
@@ -662,11 +677,6 @@ message PowerUpBundle {
    int32 target_level = 2;          //DONE
    UnitTier target_gear_tier = 3;   //DONE
    bool auto_select_tier = 4;       //DONE
-}
-message PvPArena {
-    int64 combat_type = 1;          //DONE
-    int64 arena_rank = 2;           //DONE
-    ArenaSquad arena_squad = 3;     //DONE
 }
 
 // [[ Q ]]
@@ -806,7 +816,7 @@ message TerritoryData {
 //    repeated Thing unknown_int = 4; //NULL ?
 }
 message TerritoryDetails {
-    string territory_id = 1;                                  //DONE
+    string territory_details_id = 1;                //DONE
 //    string name_key = 2;                            //NULL
     string name_key = 3;                            //DONE
     string summary_key = 4;                         //DONE
@@ -827,7 +837,7 @@ message TerritoryRequirement {
 }
 message TerritoryRequirementKey {
 //    int32 required = 1;       //NULL
-    string territory_id = 2;              //DONE
+    string territory_details_id = 2;              //DONE
 //    int32 sumamry_key = 3;    //NULL  
 }
 message TerritoryBattleEvent {
@@ -926,11 +936,6 @@ message Unit {
 //   int32 command_cost = 68;                                 //NULL ?
    string crew_contribution_table_id = 69;                  //DONE
    UnitClass unitClass = 70;                                //DONE
-}
-message UnitKey {
-    string unit_id = 1;
-    string name = 2;
-    
 }
 message UnitTierDef {
    UnitTier tier = 1;                 //DONE
