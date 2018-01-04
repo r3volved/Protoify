@@ -63,11 +63,15 @@ async function outputTable(obj, name, prefix, suffix) {
             pks.push('`'+field.name+'`');
         }
         
+        let isFK = !!template.tables[field.name.charAt(0).toUpperCase()+field.name.substr(1,field.name.length-3)]
         //IF FIELD IS FKEY, ADD TO LIST
         if( !!field.fkey ) {
 //console.log( field );
             fks += fks.length === 0 ? 'FOREIGN KEY (`'+field.name+'`) REFERENCES '+field.fkey : ', '+suffix+'FOREIGN KEY (`'+field.name+'`) REFERENCES '+field.fkey;
-        }        
+        } else if( isFK && !field.pkey ) { 
+            fks += fks.length === 0 ? 'FOREIGN KEY (`'+field.name+'`) REFERENCES `'+field.name.charAt(0).toUpperCase()+field.name.substr(1,field.name.length-3)+'`(`'+field.name+'`)' : ', '+suffix+'FOREIGN KEY (`'+field.name+'`) REFERENCES `'+field.name.charAt(0).toUpperCase()+field.name.substr(1,field.name.length-3)+'`(`'+field.name+'`)';            
+        }
+        
         
     }
     
@@ -131,10 +135,10 @@ async function outputInsert(obj, name, prefix, suffix) {
         
     }
     //CLOSE INSERT STATEMENT
-    retStr += suffix+fields+prefix+suffix+') VALUES ? ';
+    retStr += suffix+fields+prefix+suffix+') VALUES ?';
     
     if( pks.length > 0 ) {
-        retStr += suffix+'ON DUPLICATE KEY UPDATE'+suffix+values;
+        retStr += suffix+' ON DUPLICATE KEY UPDATE'+suffix+values;
     } 
     
     //CLOSE SQL TRANSACTION
@@ -169,8 +173,10 @@ async function outputClass(obj, name, prefix, suffix) {
     output += `         if( !collection ) { throw new Error(' ! No collection passed to Sql${name}.bubble'); }\n`;
     output += '         depth = depth || 0;\n';
     output += '         data = Array.isArray(data) ? data : [ data ];\n\n';
-    output += '         let result = null;\n\n';
-
+    output += '         let result = null;\n';
+    output += '         let ofkey = !!fkey ? Object.assign({},fkey) : null;\n';
+    output += '         fkey = null;\n\n';         
+        
     //Prepare data for insert
     output += '         collection[depth] = collection[depth] || {};\n';
     output += '         collection[depth][key] = collection[depth][key] || [];\n\n';
@@ -178,9 +184,9 @@ async function outputClass(obj, name, prefix, suffix) {
     output += '             let inner = [];\n\n';
     
     //IF FOREIGN KEY WAS PASSED, SET IT BEFORE PUSHING OBJECT
-    output += '             if( fkey ) {\n';
-    output += '                 let fk = Object.keys(fkey)[0];\n';
-    output += '                 data[i][fk] = fkey[fk];\n';
+    output += '             if( !!ofkey ) {\n';
+    output += '                 let fk = Object.keys(ofkey)[0];\n';
+    output += '                 data[i][fk] = ofkey[fk];\n';
     output += '             }\n\n';    
 
     for( let f in obj.fields ) { 
@@ -197,18 +203,26 @@ async function outputClass(obj, name, prefix, suffix) {
                                 
                 if( field.pkey ) {                    
                     output += `\n             //Cascade this table's primary key to child's foreign key\n`;
-                    output += `             fkey = { "${field.name}":data[i].${field.name} };\n\n`;
+                    output += `             fkey = {};\n`;
+                    output += `             fkey["${field.name}"] = data[i].${field.name};\n\n`;
+                }
+
+                if( !field.pkey && field.name === 'playerUnitModId' ) {                    
+                    output += `\n             //Cascade playerUnitModId key to stats\n`;
+                    output += `             fkey = {};\n`;
+                    output += `             fkey["${field.name}"] = data[i].${field.name};\n\n`;
                 }
                 
             }
         }
     }
         
-    output += '             collection[depth][key].push(inner);\n\n';
+    output += '\n             collection[depth][key].push(inner);\n\n';
     output += '         }\n\n';
 
     output += '         for( let i = 0; i < data.length; ++i ) {\n\n';
-    output += '             let payload = {"verbose":true};\n\n';
+    output += '             let payload = {};\n';
+    output += '                 payload["verbose"] = true;\n\n';
         
     let required = [];
 
@@ -223,7 +237,7 @@ async function outputClass(obj, name, prefix, suffix) {
                 output += `             const Sql${field.type} = require('./sql.${field.type}.js');\n\n`;
                 required.push(field.type);
             }
-            output += `             if( typeof data[i].${field.name} !== "undefined" && data[i].${field.name}.length > 0 ) {\n`;            
+            output += `             if( typeof data[i].${field.name} !== "undefined" ) {\n`;            
             output += `                 collection = await new Sql${field.type}(payload).bubble(data[i].${field.name}, collection, '${field.type}', depth+1, fkey);\n`;
             output += `             }\n\n`;
             
@@ -477,7 +491,6 @@ async function getFields( data ) {
                 if( template.tnames.includes(ftype) ) {
                     let pTable = tname;
                     let fTable = field.type;
-//console.log( tname, field.type );           
                     field.ref = {};
                     field.ref.ptable = { "name":pTable, "keys":[] };
                     field.ref.ftable = { "name":fTable, "keys":[] };
@@ -513,30 +526,9 @@ async function getReferenceKeys( data ) {
                     field.ref.ftable.keys = template.tables[field.ref.ftable.name] ? template.tables[field.ref.ftable.name].pks : [];
                 }
                  
-            }
-        }               
-
-        return true;
-        
-    } catch(e) {
-        throw e;
-    }
-    
-}
-
-
-async function addNormalization( data ) { 
-
-    try {
-    
-        let newTables = [];
-        
-        //PARSE EACH FIELD IN EACH TABLE        
-        for( let t in template.tables ) {            
-            for( let f in template.tables[t].fields ) {
+                if( t === 'GameData' ) { continue; }
                 
-                let field = template.tables[t].fields[f];
-                if( field.ref && field.ref.ptable.name.length > 0 && t !== 'GameData' ) {
+                if( field.ref && field.ref.ptable.name.length > 0 ) {
                     
                     let newField = Object.assign({},template.tables[t].fields[field.ref.ptable.keys[0]]);
                     if( !newField.name ) { continue; }
@@ -545,11 +537,9 @@ async function addNormalization( data ) {
                     newField.fkey       = '`'+field.ref.ptable.name+'`(`'+newField.name+'`)';
                     newField.condition  = 'NULL';
 
-console.log( t, f, newField );
-                    
                     template.tables[field.ref.ftable.name].fields[newField.name] = Object.assign({},newField);
 
-                }
+                } 
                 
             }            
         }               
@@ -572,7 +562,6 @@ async function parse( data ) {
         await getContainers( data );
         await getFields( data );
         await getReferenceKeys( data );
-        await addNormalization( data );
         
     } catch(e) {
         throw e;

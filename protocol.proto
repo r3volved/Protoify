@@ -156,7 +156,7 @@ message GameData {
     repeated ModStat mod_stats = 29;                   //DONE
 //    repeated StatModUpdaterDefinition stat_mod_updater = 30;    //NULL ?
 //    repeated DecimalTable decimal_table = 31;                   //NULL ?
-    repeated Gear gear = 32;                         //DONE
+    repeated GearItems gear = 32;                         //DONE
     repeated PointsMap point_map = 33;                          //DONE
     repeated HomeData home = 34;                                //DONE
 //    repeated string null_string = 35;                           //DONE
@@ -425,19 +425,19 @@ message EventSampling {
 
 // [[ F ]]
 // [[ G ]]
-message Gear { 
-   GearDefinition item = 1;    //DONE
+message Gear {
+   string gear_id = 1;               //DONE
+   int32 some_int = 2;              //NULL ? Always 11
+   string some_blank = 3;           //NULL ?
+   int32 something = 4;             //NULL ? Always 1
+   int32 something_else = 5;       //NULL ? Always 1
+}
+message GearItems { 
+   Gear gear = 1;    //DONE
 }
 message GearEquipped {
     string gear_id = 1;
     int32 slot = 2;
-}
-message GearDefinition {
-   string equipment_id = 1;               //DONE
-//   int32 unknown_int = 2;        //NULL ? Always 11
-//   string unknown_null = 3;     //NULL ?
-//   int32 inknown_id2 = 4;       //NULL ? Always 1
-//   int32 inknown_id3 = 5;       //NULL ? Always 1
 }
 message GuildBannerColor {
    string guild_banner_color_id = 1;                                    //DONE
@@ -524,10 +524,6 @@ message MessageDialog {
    string title_key = 1;                   // [default = ""];
    string desc_key = 2;                   // [default = ""];
 }
-message ModSetBonus {
-//   string ability_id = 1;           //NULL ?
-   PlayerUnitModStat stat = 2;                   //DONE
-}
 message ModSet {
    string mod_set_id = 1;                       //DONE
    string name = 2;                     //DONE
@@ -538,8 +534,17 @@ message ModSet {
    ModSetBonus max_level_bonus = 7;     //DONE
    int32 set_count = 8;                 //DONE
 }
+message ModSetBonus {
+//   string ability_id = 1;           //NULL ?
+   ModSetBonusStat stat = 2;                   //DONE
+}
+message ModSetBonusStat {
+    string mod_set_bonus_id = 1;         //DONE
+    Stat stat = 2;                  //DONE
+    //   string roll = 3;             //NULL ?  
+}
 message ModStat {
-   string mod_stat_id = 1;                                       //DONE
+   string mod_stat_id = 1;                              //DONE
    ModStatSlot slot = 2;                                //DONE
    string mod_set_id = 3;                                   //DONE
    Rarity rarity = 4;                                   //DONE
@@ -588,7 +593,7 @@ message PlayerStat {
 }
 message PlayerUnit {
     string player_unit_id = 1;                              //DONE
-    string name = 2;                            //DONE
+    string unit_id = 2;                            //DONE
 //    bytes null3 = 3;                            //NULL ?
 //    bytes null4 = 4;                            //NULL ?
 //    bytes null5 = 5;                            //NULL ?
@@ -622,13 +627,18 @@ message PlayerUnitMod {
     map<int32,int64> sell_value = 9;          //DONE
     map<int32,int64> remove_cost = 10;        //DONE
     bool locked = 11;                         //DONE
-    PlayerUnitModStat primary_stat = 12;                //DONE
-    repeated PlayerUnitModStat secondary_stat = 13;     //DONE
+    PlayerUnitModPrimeStat primary_stat = 12;                //DONE
+    repeated PlayerUnitModSecondStat secondary_stat = 13;     //DONE
     int32 total_xp = 14;                      //DONE
 //    CurrencyItem level_cost = 15;
     map<int32,int64> level_cost = 15;        //DONE
 }
-message PlayerUnitModStat {
+message PlayerUnitModPrimeStat {
+    string mod_set_id = 1;         //DONE
+    Stat stat = 2;                  //DONE
+    //   string roll = 3;             //NULL ?  
+}
+message PlayerUnitModSecondStat {
     string mod_set_id = 1;         //DONE
     Stat stat = 2;                  //DONE
     //   string roll = 3;             //NULL ?  
