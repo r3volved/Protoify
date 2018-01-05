@@ -53,10 +53,12 @@ async function outputTable(obj, name, prefix, suffix) {
         
         if( field.name === 'modDefinition' ) {
             //SPECIAL CASE FOR MOD DEFINITION - SPLIT INTO THREE COLUMNS
+            retStr += prefix+'`modStatId` VARCHAR(128) COLLATE utf8_bin NULL,'+suffix;
             retStr += prefix+'`modSetId` VARCHAR(128) COLLATE utf8_bin NULL,'+suffix;
             retStr += prefix+'`modQuality` INT(32) COLLATE utf8_bin NULL,'+suffix;
             retStr += prefix+'`modSlot` INT(32) COLLATE utf8_bin NULL,'+suffix;
 
+            fks += fks.length === 0 ? 'FOREIGN KEY (`modStatId`) REFERENCES `ModStat`(`modStatId`)' : ', '+suffix+'FOREIGN KEY (`modStatId`) REFERENCES `ModStat`(`modStatId`)';
             fks += fks.length === 0 ? 'FOREIGN KEY (`modSetId`) REFERENCES `ModSet`(`modSetId`)' : ', '+suffix+'FOREIGN KEY (`modSetId`) REFERENCES `ModSet`(`modSetId`)';
             
         } else if( field.name === 'modStatDefinition' ) {
@@ -150,10 +152,12 @@ async function outputInsert(obj, name, prefix, suffix) {
             
             if( field.name === 'modDefinition' ) {
                 //SPECIAL CASE FOR MOD DEFINITION - SPLIT INTO THREE COLUMNS
+                fields += fields.length === 0 ? prefix+'`modStatId`' : ','+prefix+'`modStatId`';
                 fields += fields.length === 0 ? prefix+'`modSetId`' : ','+prefix+'`modSetId`';
                 fields += fields.length === 0 ? prefix+'`modQuality`' : ','+prefix+'`modQuality`';
                 fields += fields.length === 0 ? prefix+'`modSlot`' : ','+prefix+'`modSlot`';                
                 
+                values += values.length === 0 ? prefix+'`modStatId`=VALUES(`modStatId`)' : ','+prefix+'`modStatId`=VALUES(`modStatId`)';
                 values += values.length === 0 ? prefix+'`modSetId`=VALUES(`modSetId`)' : ','+prefix+'`modSetId`=VALUES(`modSetId`)';
                 values += values.length === 0 ? prefix+'`modSetId`=VALUES(`modQuality`)' : ','+prefix+'`modQuality`=VALUES(`modQuality`)';
                 values += values.length === 0 ? prefix+'`modSetId`=VALUES(`modSlot`)' : ','+prefix+'`modSlot`=VALUES(`modSlot`)';
@@ -268,6 +272,7 @@ async function outputClass(obj, name, prefix, suffix) {
                 } else {
                     if( field.name === 'modDefinition' ) {
                         output += `             let [ modSetId, modQuality, modSlot ] = data[i].${field.name}.split('');\n`; 
+                        output += `             inner.push(data[i].${field.name});\n`;
                         output += `             inner.push(modSetId);\n`;
                         output += `             inner.push(modQuality);\n`;
                         output += `             inner.push(modSlot);\n\n`;
