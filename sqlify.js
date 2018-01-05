@@ -46,8 +46,26 @@ async function outputTable(obj, name, prefix, suffix) {
     let pks = [];
     let retStr = '';
     
+    let specialKeys = [];
+    if( name === 'PlayerArena' ) { specialKeys = ['playerId','combatType']; }
+    if( name === 'PlayerArenaSquadUnit' ) { specialKeys = ['playerId','combatType','unitIndex']; }
+    if( name === 'PlayerStat' ) { specialKeys = ['playerId','order']; }
+    if( name === 'PlayerUnitGear' ) { specialKeys = ['playerUnitId','slot']; }
+    if( name === 'PlayerUnitModStat' ) { specialKeys = ['playerUnitModId','statId']; }
+    if( name === 'PlayerUnitSkill' ) { specialKeys = ['playerUnitId','skillId']; }
+    
     //APPEND TABLE CREATE STATEMENT  
     retStr += 'CREATE TABLE IF NOT EXISTS `'+name+'` ('+suffix;
+    
+    if( name === 'PlayerArenaSquadUnit' ) {
+        //SPECIAL CASE FOR MOD STAT DETAILS - SPLIT INTO FOUR COLUMNS
+        retStr += prefix+'`playerId` VARCHAR(128) COLLATE utf8_bin NOT NULL,'+suffix;
+        retStr += prefix+'`combatType` INT(32) COLLATE utf8_bin NOT NULL,'+suffix;
+        retStr += prefix+'`unitIndex` INT(32) COLLATE utf8_bin NOT NULL,'+suffix;
+        fks += fks.length === 0 ? 'FOREIGN KEY (`playerId`) REFERENCES `Player`(`playerId`)' : ', '+suffix+'FOREIGN KEY (`playerId`) REFERENCES `Player`(`playerId`)';
+        pks = specialKeys;
+    } 
+        
     for( let f in obj.fields ) { 
         let field = obj.fields[f]; 
         
@@ -70,21 +88,23 @@ async function outputTable(obj, name, prefix, suffix) {
 
         } else if( field.name === 'modStatDetails' ) {
             //SPECIAL CASE FOR MOD STAT DETAILS - SPLIT INTO FOUR COLUMNS
-            retStr += prefix+'`statId` INT(32) COLLATE utf8_bin NULL,'+suffix;
+            retStr += prefix+'`statId` INT(32) COLLATE utf8_bin NOT NULL,'+suffix;
             retStr += prefix+'`statValue` BIGINT COLLATE utf8_bin NULL,'+suffix;
 
             fks += fks.length === 0 ? 'FOREIGN KEY (`statId`) REFERENCES `Stat`(`statId`)' : ', '+suffix+'FOREIGN KEY (`statId`) REFERENCES `Stat`(`statId`)';
-
+            pks.push('`statId`');
+            
         } else {
             //APPEND EACH FIELD
-            if( field.type === "INT" || field.type === "BIGINT" || field.type === "VARCHAR" ) { 
+            if( specialKeys.includes(field.name) ) { field.condition = "NOT NULL"; }
+            if( field.type === "INT" || field.type === "BIGINT" || field.type === "VARCHAR" ) {                 
                 retStr += prefix+'`'+field.name+'` '+field.type+'('+field.size+') '+field.collation+' '+field.condition+','+suffix;
             } else if( field.type === "BOOLEAN" || field.type === "TIMESTAMP" || field.type === "TEXT" ) {
                 retStr += prefix+'`'+field.name+'` '+field.type+' '+field.collation+' '+field.condition+','+suffix;
             }
             
             //IF FIELD IS PKEY, ADD TO LIST
-            if( field.pkey ) {
+            if( field.pkey || specialKeys.includes(field.name) ) {
                 pks.push('`'+field.name+'`');
             }
             
@@ -137,6 +157,15 @@ async function outputInsert(obj, name, prefix, suffix) {
     suffix = suffix || '';
     
     let pks = [];
+    
+    let specialKeys = [];
+    if( name === 'PlayerArena' ) { specialKeys = ['playerId','combatType']; }
+    if( name === 'PlayerArenaSquadUnit' ) { specialKeys = ['playerId','combatType','unitIndex']; }
+    if( name === 'PlayerStat' ) { specialKeys = ['playerId','order']; }
+    if( name === 'PlayerUnitGear' ) { specialKeys = ['playerUnitId','slot']; }
+    if( name === 'PlayerUnitModStat' ) { specialKeys = ['playerUnitModId','statId']; }
+    if( name === 'PlayerUnitSkill' ) { specialKeys = ['playerUnitId','skillId']; }
+    
     let retStr = '';
     let values = '';
     let fields = '';
@@ -144,6 +173,14 @@ async function outputInsert(obj, name, prefix, suffix) {
         
     //APPEND INSERT STATEMENT  
     retStr += 'INSERT INTO `'+name+'` (';
+
+    if( name === 'PlayerArenaSquadUnit' ) {
+        //SPECIAL CASE FOR MOD STAT DETAILS - SPLIT INTO FOUR COLUMNS
+        fields += fields.length === 0 ? prefix+'`playerId`' : ','+prefix+'`playerId`';
+        fields += fields.length === 0 ? prefix+'`combatType`' : ','+prefix+'`combatType`';
+        fields += fields.length === 0 ? prefix+'`unitIndex`' : ','+prefix+'`unitIndex`';
+    } 
+    
     for( let f in obj.fields ) { 
         let field = obj.fields[f]; 
         
@@ -177,7 +214,7 @@ async function outputInsert(obj, name, prefix, suffix) {
             } else {
                 fields += fields.length === 0 ? prefix+'`'+field.name+'`' : ','+prefix+'`'+field.name+'`';        
                 
-                if( !field.pkey ) {
+                if( !field.pkey && !specialKeys.includes(field.name) ) {
                     values += values.length === 0 ? prefix+'`'+field.name+'`=VALUES(`'+field.name+'`)' : ','+prefix+'`'+field.name+'`=VALUES(`'+field.name+'`)';                
                 } else {
                     pks.push(field);
@@ -190,7 +227,6 @@ async function outputInsert(obj, name, prefix, suffix) {
                 fields += fields.length === 0 ? prefix+'`statId`' : ','+prefix+'`statId`';                
                 fields += fields.length === 0 ? prefix+'`statValue`' : ','+prefix+'`statValue`';                
                 
-                values += values.length === 0 ? prefix+'`statId`=VALUES(`statId`)' : ','+prefix+'`statId`=VALUES(`statId`)';
                 values += values.length === 0 ? prefix+'`statValue`=VALUES(`statValue`)' : ','+prefix+'`statValue`=VALUES(`statValue`)';
                 
             }
@@ -201,6 +237,7 @@ async function outputInsert(obj, name, prefix, suffix) {
     //CLOSE INSERT STATEMENT
     retStr += suffix+fields+prefix+suffix+') VALUES ?';
     
+    if( name === 'PlayerArenaSquadUnit' ) { pks = specialKeys; }
     if( pks.length > 0 ) {
         retStr += suffix+' ON DUPLICATE KEY UPDATE'+suffix+values;
     } 
@@ -241,7 +278,9 @@ async function outputClass(obj, name, prefix, suffix) {
     output += '         let ofkey = !!fkey ? Object.assign({},fkey) : null;\n';
     output += '         fkey = null;\n\n';         
     output += '         let payload = {};\n';
-    output += '             payload["verbose"] = true;\n\n';
+    output += '             payload["verbose"] = this.verbose;\n';
+    output += '             payload["hush"] = this.hush;\n';
+    output += '             payload["debug"] = this.debug;\n\n';
         
     //Prepare data for insert
     output += '         collection[depth] = collection[depth] || {};\n';
@@ -251,10 +290,23 @@ async function outputClass(obj, name, prefix, suffix) {
     
     //IF FOREIGN KEY WAS PASSED, SET IT BEFORE PUSHING OBJECT
     output += '             if( !!ofkey ) {\n';
-    output += '                 let fk = Object.keys(ofkey)[0];\n';
-    output += '                 data[i][fk] = ofkey[fk];\n';
+    output += '                 for( let fk in ofkey ) {\n';
+    output += '                     data[i][fk] = ofkey[fk];\n';
+    output += '                 }\n';             
     output += '             }\n\n';    
 
+    if( name === 'PlayerArena' || name === 'PlayerArenaSquad' ) {
+        output += `             fkey = fkey || {};\n`;
+        output += `             fkey["playerId"] = data[i].playerId;\n`;
+        output += `             fkey["combatType"] = data[i].combatType;\n\n`;        
+    }
+
+    if( name === 'PlayerArenaSquadUnit' ) {
+        output += `             inner.push(data[i].playerId);\n\n`;
+        output += `             inner.push(data[i].combatType);\n\n`;
+        output += `             inner.push(i+1);\n\n`;
+    }
+    
     let required = [];
 
     for( let f in obj.fields ) { 
@@ -270,6 +322,7 @@ async function outputClass(obj, name, prefix, suffix) {
                     output += `                 inner.push(await JSON.stringify(data[i].${field.name}Map));\n`;
                     output += `             }\n\n`;
                 } else {
+                    
                     if( field.name === 'modDefinition' ) {
                         output += `             let [ modSetId, modQuality, modSlot ] = data[i].${field.name}.split('');\n`; 
                         output += `             inner.push(data[i].${field.name});\n`;
@@ -289,17 +342,18 @@ async function outputClass(obj, name, prefix, suffix) {
                     } else {
                         output += `             inner.push(data[i].${field.name});\n\n`;
                     }
+                    
                 }
                                 
                 if( field.pkey ) {                    
                     output += `             //Cascade this table's primary key to child's foreign key\n`;
-                    output += `             fkey = {};\n`;
+                    output += `             fkey = fkey || {};\n`;
                     output += `             fkey["${field.name}"] = data[i].${field.name};\n\n`;
                 }
 
                 if( !field.pkey && field.name === 'playerUnitModId' ) {                    
                     output += `             //Cascade playerUnitModId key to stats\n`;
-                    output += `             fkey = {};\n`;
+                    output += `             fkey = fkey || {};\n`;
                     output += `             fkey["${field.name}"] = data[i].${field.name};\n\n`;
                 }
                 
@@ -340,13 +394,19 @@ async function outputClass(obj, name, prefix, suffix) {
     output += '     try {\n\n';
     output += `         if( !arr ) { throw new Error(' ! No data passed to Sql${name}.save'); }\n`;
     output += '         let result = null;\n\n';
-    
-    //Insert table if not exists
-    output += '         result = await this.insertTable( this.table );\n\n';
-    output += '         result = await this.insertSQL( this.insert, arr );\n\n';
-    output += '         if( result && !!this.verbose ) { console.info(` + ${arr.length} '+name+'(s) inserted`); }\n\n';
 
-    output += '         return result;\n\n';
+    //Skip PlayerArenaSquads table
+    if( name !== 'PlayerArenaSquad' ) {
+        
+        //Insert table if not exists
+        output += '         result = await this.insertTable( this.table );\n\n';
+        output += '         result = await this.insertSQL( this.insert, arr );\n\n';
+        output += '         if( result && this.verbose ) { console.info(` + ${arr.length} '+name+'(s) inserted`); }\n\n';
+        output += '         return result;\n\n';
+    } else {
+        output += '         return true;\n\n';
+    }
+    
     output += '     } catch(e) {\n';
     output += '         this.end();\n         throw e;\n     }\n\n';
     output += '  }\n\n';
@@ -566,10 +626,10 @@ async function getFields( data ) {
                         continue;
                     }                               
                     field.collation = "COLLATE utf8_bin";
-                    
+                                        
                     let fcomp = fname.charAt(0).toUpperCase()+fname.substr(1,fname.length-3);
-                    field.pkey = tname === fcomp ? true : false;
-                    field.condition = tname === fcomp ? "NOT NULL" : "NULL";
+                    field.pkey = tname === fcomp ? true : false;                        
+                    field.condition = field.pkey ? "NOT NULL" : "NULL";
                     
                     //IF FIELD IS A PRIMARY KEY, TRACK IT
                     if( field.pkey ) { pks.push(fname); }                

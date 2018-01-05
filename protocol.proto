@@ -533,8 +533,15 @@ message ModSetBonus {
 }
 message ModSetBonusStat {
     string mod_set_bonus_stat_id = 1;         //DONE
-    Stat stat = 2;                  //DONE
+    ModSetBonusStatDetail stat = 2;                  //DONE
     //   string roll = 3;             //NULL ?  
+}
+message ModSetBonusStatDetail {
+   string id = 1;                     //NULL?
+   bytes null2 = 2;                   //NULL?
+   UnitStat stat_id = 3;                   //DONE
+   int32 stat_value_decimal_old = 4;  //NULL ?
+   int64 stat_value = 5;      //DONE
 }
 message ModStat {
    string mod_stat_id = 1;                              //DONE
