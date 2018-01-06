@@ -216,15 +216,15 @@ message Ability {
    repeated EffectTag effected_tag = 16;            //DONE
    repeated EffectReference effect_reference = 17;  //DONE
 //   MessageDialog confirmation_message = 18;         //NULL ?         
-   AbilityButtonLocationType button_location = 19;  //DONE
+   AbilityButtonType ability_button_type = 19;  //DONE
    string short_desc_key = 20;                      //NULL ?
    int32 max_tiers = 21;                            //DONE
    int32 available = 22;                            //DONE
 }
 message AbilityReference {
    string ability_id = 1;                 //DONE
-   UnitTier required_tier = 2;    //DONE
-   Rarity required_rarity = 3;    //DONE
+   UnitTier unit_tier = 2;    //DONE
+   Rarity rarity = 3;    //DONE
    int32 override = 4;            //DONE
 }
 message AbilityTier {
@@ -237,7 +237,7 @@ message AbilityTier {
 }
 message ActionLink {
    string link = 1;
-   ActionLinkType type = 2;
+   ActionLinkType action_link_type = 2;
 }
 
 // [[ B ]]
@@ -252,7 +252,7 @@ message BattleEnvironment {
 }
 message BucketItem {
    string item_id = 1;                       //DONE
-   ItemType type = 2;                   //DONE
+   ItemType item_type = 2;                   //DONE
    int32 weight = 3;                    //DONE
    int32 minQuantity = 4;               //DONE
    int32 maxQuantity = 5;               //DONE
@@ -272,11 +272,11 @@ message Category {
    string category_id = 1;               //DONE
    string desc_key = 2;         //DONE
    bool visible = 3;            //DONE
-   CombatType ui_filter = 4;    //DONE
+   CombatType combat_type = 4;    //DONE
 }
 message Challenge {
    string challenge_id = 1;                         //DONE
-   ChallengeType type = 2;                //DONE
+   ChallengeType challenge_type = 2;                //DONE
    string name_key = 3;                   //DONE
    string desc_key = 4;                   //DONE
 //   string action_link = 5;                //NULL ?
@@ -284,9 +284,9 @@ message Challenge {
    repeated BucketItem reward = 7;        //DONE
 //   bytes null8 = 8;                       //NULL
    string platform_achievement_id = 9;    //DONE
-   ActionLink action_link_def = 10;       //DONE
-   ChallengeClaimType claim_type = 11;    //DONE
-   ChallengeRewardType reward_type = 12;  //DONE
+   ActionLink action_link = 10;       //DONE
+   ChallengeClaimType challenge_claim_type = 11;    //DONE
+   ChallengeRewardType challenge_reward_type = 12;  //DONE
    float reward_ratio = 13;               //DONE
 }
 message CraftingMaterial {
@@ -298,20 +298,20 @@ message CraftingMaterial {
    map<int32,int64> sell_value = 5;                   //DONE
    repeated LookupMission lookup_mission = 6;         //DONE
    int32 xp_value = 7;                                //DONE
-   MaterialType type = 8;                             //DONE
+   MaterialType material_type = 8;                             //DONE
 //   UnitClass unit_class = 9;                          //NULL ?
    Rarity rarity = 10;                                //DONE
 //   int32 training_cost = 11;                          //NULL ?
 //   int32 training_cost_max_level = 12;                //NULL ?
    string unit_def_reference = 13;                    //DONE
-   UnitTier tier = 14;                                //DONE
+   UnitTier unit_tier = 14;                                //DONE
    int64 obtainable_time = 15;                        //DONE
    repeated LookupMission raid_lookup = 16;           //DONE
    repeated LookupActionLink action_link_lookup = 17; //DONE
 }
 message CrewGroupSlotDef {
    int32 max_size = 1;                   // [default = 0];
-   Rarity rarity_requirement = 2;                   // [default = NOSTAR];
+   Rarity rarity = 2;                   // [default = NOSTAR];
    string name_key = 3;                   // [default = ""];
    string stat_table_id = 4;                   // [default = ""];
 }
@@ -321,7 +321,7 @@ message CrewMember {
    repeated SkillDefinitionReference skill_reference = 3;
 }
 message CurrencyItem {
-   CurrencyType currency = 1;                   // [default = GRIND];
+   CurrencyType currency_type = 1;                   // [default = GRIND];
    int32 quantity = 2;                   // [default = 0];
 }
 
@@ -338,13 +338,13 @@ message DecimalTableRow {
 // [[ E ]]
 message Effect {
    string effect_id = 1;                                   //DONE
-   EffectType type = 2;                             //DONE
+   EffectType effect_type = 2;                             //DONE
 //   string unknown_null3 = 3;                        //NULL ?
 //   string unknown_null4 = 4;                        //NULL ?
 //   string unknown_null5 = 5;                        //NULL ?
    repeated string param = 6;                       //DONE
    int32 chance = 7;                                //DONE
-   repeated EffectTarget target = 8;                //DONE
+   repeated EffectTarget effect_target = 8;                //DONE
    repeated EffectTag descriptive_tag = 9;          //DONE
    repeated EffectTag effected_tag = 10;            //DONE
 //   string unknown_null11 = 11;                      //NULL ?   
@@ -352,8 +352,8 @@ message Effect {
 //   repeated Effect effect_definition = 13;          //NULL ?
    int32 context_index = 14;                        //DONE
    repeated BattleCondition expiration_condition = 15;//DONE
-   EffectApplyType apply_type = 16;                 //DONE
-   EffectDamageType damage_type = 17;               //DONE
+   EffectApplyType effect_apply_type = 16;                 //DONE
+   EffectDamageType effect_damage_type = 17;               //DONE
 //   string unknown_null18 = 18;                      //NULL ?   
    string persistent_icon = 19;                     //DONE
    string triggered_vfx = 20;                       //DONE
@@ -384,14 +384,14 @@ message EffectTagCriteria {
    bool exclude = 2;                   // [default = false];
 }
 message EffectTarget {
-   EffectTargetUnitSelect unit_select = 1;                   // [default = SELECTALL];
-   EffectTargetBattleSide battle_side = 2;                   // [default = BOTHSIDES];
+   EffectTargetUnitSelect effect_target_unit_select = 1;                   // [default = SELECTALL];
+   EffectTargetBattleSide effect_target_battle_side = 2;                   // [default = BOTHSIDES];
    UnitClass unit_class = 3;
    repeated ForceAlignment force_alignment = 4;
-   EffectTargetCategoryCriteria category = 5;
-   UnitHealthState health_state = 6;                   // [default = UNITHEALTHSTATEANY];
-   repeated StatValueRange stat_value = 8;
-   repeated EffectTagCriteria active_effect_tag_criteria = 9;
+   EffectTargetCategoryCriteria effect_target_category_criteria = 5;
+   UnitHealthState unit_health_state = 6;                   // [default = UNITHEALTHSTATEANY];
+   repeated StatValueRange stat_value_range = 8;
+   repeated EffectTagCriteria effect_tag_criteria = 9;
 }
 message EffectTargetCategoryCriteria {
    bool exclude = 1;                   // [default = false];
@@ -404,13 +404,13 @@ message Equipment {
    int32 required_level = 4;                            //DONE
    StatDef equipment_stat = 5;                          //DONE
    string recipe_id = 6;                                //DONE
-   UnitTier tier = 7;                                   //DONE
+   UnitTier unit_tier = 7;                                   //DONE
    map<int32,int64> sell_value = 8;                     //DONE
    repeated LookupMission lookup_mission = 9;           //DONE
    string mark = 10;                                    //DONE
    int64 obtainable_time = 11;                          //DONE
    repeated LookupMission raid_lookup = 12;             //DONE
-   EquipmentType type = 13;                             //DONE
+   EquipmentType equipment_type = 13;                             //DONE
    repeated LookupActionLink action_link_lookup = 14;   //DONE
    int32 some_enum = 15;                                //??
 }
@@ -467,9 +467,9 @@ message GuildRaid {
 }
 message GuildRaidConfig {
    string guild_raid_id = 1;                                       //DONE
-   GuildRaidType raid_type = 2;                         //DONE
-   GuildRaidRosterRefreshType roster_refresh_type = 3;  //DONE
-   GuildRaidRosterRefresh roster_refresh = 4;           //DONE
+   GuildRaidType guild_raid_type = 2;                         //DONE
+   GuildRaidRosterRefreshType guild_raid_roster_refresh_type = 3;  //DONE
+   GuildRaidRosterRefresh guild_raid_roster_refresh = 4;           //DONE
    int64 raid_duration = 5;                             //DONE
 }
 message GuildRaidRosterRefresh {
@@ -479,7 +479,7 @@ message GuildRaidRosterRefresh {
 
 // [[ H ]]
 message HelpEntry {
-   HelpType help_entry_id = 1;                   //DONE
+   HelpType help_type = 1;                   //DONE
    repeated HelpTile tile = 2;        //DONE
 }
 message HelpTile {
@@ -539,13 +539,13 @@ message ModSetBonusStat {
 message ModSetBonusStatDetail {
    string id = 1;                     //NULL?
    bytes null2 = 2;                   //NULL?
-   UnitStat stat_id = 3;                   //DONE
+   UnitStat unit_stat = 3;                   //DONE
    int32 stat_value_decimal_old = 4;  //NULL ?
    int64 stat_value = 5;      //DONE
 }
 message ModStat {
    string mod_stat_id = 1;                              //DONE
-   ModStatSlot slot = 2;                                //DONE
+   ModStatSlot mod_stat_slot = 2;                                //DONE
    string mod_set_id = 3;                                   //DONE
    Rarity rarity = 4;                                   //DONE
    string name_key = 5;                                 //DONE
@@ -559,8 +559,8 @@ message ModStat {
 // [[ N ]]
 // [[ O ]]
 message OldWar {
-   CombatType type = 1;                     //DONE
-   CampaignNodeDifficulty difficulty = 2;   //DONE
+   CombatType combat_type = 1;                     //DONE
+   CampaignNodeDifficulty campaign_node_difficulty = 2;   //DONE
    repeated WarNode node = 3;            //DONE
 }
 
@@ -586,7 +586,7 @@ message Player {
     repeated PlayerArena player_arena = 17;     //DONE
 }
 message PlayerArena {
-    int64 combat_type = 1;          //DONE
+    CombatType combat_type = 1;          //DONE
     int64 arena_rank = 2;           //DONE
     PlayerArenaSquad player_arena_squad = 3;     //DONE
 }
@@ -636,7 +636,7 @@ message PlayerUnitMod {
     string mod_definition = 2;                    //DONE - set|dots|slot
 //    bytes null3 = 3;                          //NULL ?
     uint32 level = 4;                         //DONE
-    ModStatTier quality = 5;                  //DONE   
+    ModStatTier mod_stat_tier = 5;                  //DONE   
 //    bytes null6 = 6;                          //NULL ?
 //    bytes null7 = 7;                          //NULL ?
 //    bytes null8 = 8;                          //NULL ?    
@@ -657,7 +657,7 @@ message PlayerUnitModStat {
 message PlayerUnitModStatDetail {
 //   string id = 1;                     //NULL?
 //   bytes null2 = 2;                   //NULL?
-   UnitStat stat_id = 3;                   //DONE
+   UnitStat unit_stat = 3;                   //DONE
 //   int32 stat_value_decimal_old = 4;  //NULL ?
    int64 stat_value = 5;      //DONE
 }
@@ -682,7 +682,7 @@ message Position {
 message PowerUpBundle {
    string power_up_bundle_id = 1;                   //DONE
    int32 target_level = 2;          //DONE
-   UnitTier target_gear_tier = 3;   //DONE
+   UnitTier unit_tier = 3;   //DONE
    bool auto_select_tier = 4;       //DONE
 }
 
@@ -695,19 +695,19 @@ message Recipe {
    string icon_key = 4;                 //DONE
    BucketItem result = 5;               //DONE
    repeated BucketItem ingredients = 6; //DONE
-   RecipeType type = 7;                 //DONE     
+   RecipeType recipe_type = 7;                 //DONE     
 //   Requirement view_requirement = 8;    //NULL ?    
 //   int32 unlock_level = 9;              //NULL ? 
    Requirement craft_requirement = 10;  //DONE
 }
 message Requirement {
-   EvaluationType eval_type = 1;                    //DONE
+   EvaluationType evaluation_type = 1;                    //DONE
    repeated RequirementItem requirement_item = 2;   //DONE
    string requirement_id = 3;                       //DONE
    string desc_key = 4;                             //DONE
 }
 message RequirementItem {
-   RequirementType type = 1;                        //DONE
+   RequirementType requirement_type = 1;                        //DONE
    string requirement_item_id = 2;                  //DONE
    int32 value = 3;                                 //DONE
 }
@@ -729,19 +729,19 @@ message SkillDefinition {
 message SkillDefinitionReference {
    string skill_id = 1;               //DONE
 //   bytes null2 = 2;             //NULL ?
-   UnitTier required_tier = 3;  //DONE
-   Rarity required_rarity = 4;  //DONE
+   UnitTier unit_tier = 3;  //DONE
+   Rarity rarity = 4;  //DONE
 }
 message SkillTierDefinition {
    string recipe_id = 1;                           //DONE
    int32 required_unit_level = 2;           //DONE
-   Rarity required_unit_rarity = 3;         //DONE
+   Rarity rarity = 3;         //DONE
    int32 required_equipment_level = 4;     //DONE
 }
 message Stat {
 //   string id = 1;                     //NULL?
 //   bytes null2 = 2;                   //NULL?
-   UnitStat stat_id = 3;                   //DONE
+   UnitStat unit_stat = 3;                   //DONE
 //   int32 stat_value_decimal_old = 4;  //NULL ?
    int64 stat_value_decimal = 5;      //DONE
 }
@@ -773,11 +773,11 @@ message StatProgression {
 //   bytes null4 = 4;                 //NULL ?
 //   bytes null5 = 5;                 //NULL ?
    StatDef stat = 6;                //DONE
-   OperationType operation = 7;     //DONE
+   OperationType operation_type = 7;     //DONE
 }
 message StatValueRange {
-   UnitStat stat = 1;                   // [default = UNITSTATMAXHEALTH];
-   BattleUnitStateStat battle_stat = 2;                   // [default = BATTLEUNITSTATUNDEFINED];
+   UnitStat unit_stat = 1;                   // [default = UNITSTATMAXHEALTH];
+   BattleUnitStateStat battle_unit_state_stat = 2;                   // [default = BATTLEUNITSTATUNDEFINED];
    StatValueRangeNumber min = 3;
    StatValueRangeNumber max = 4;
 }
@@ -807,7 +807,7 @@ message TargetingWeight {
 }
 message Territory {
 //    int32 id = 1;                           //NULL ?
-    int32 combat_type = 2;                  //DONE
+    CombatType combat_type = 2;                  //DONE
     TerritoryPoints points_required = 3;    //DONE
 //    bytes null4 = 4;                        //NULL ?
 //    bytes null5 = 5;                        //NULL ?
@@ -884,7 +884,7 @@ message Unit {
 //   bytes unknown_null9 = 9;                                 //NULL ?
 //   bytes unknown_null10 = 10;                               //NULL ?
    Rarity rarity = 11;                                      //DONE
-   Rarity max_rarity = 12;                                  //DONE
+   Rarity rarity_max = 12;                                  //DONE
    ForceAlignment force_alignment = 13;                     //DONE
    string xp_table_id = 14;                                 //DONE
 //   bytes unknown_null15 = 15;                               //NULL ?
@@ -924,7 +924,7 @@ message Unit {
 //   bytes unknown_null49 = 49;                               //NULL ?
    StatDef base_stat = 50;                                  //DONE
 //   string primary_stat = 51;                                //NULL ?
-   repeated UnitTierDef unit_tier = 52;                     //DONE
+   repeated UnitTierDef unit_tier_def = 52;                     //DONE
 //   bytes basic_attack = 53;                                 //NULL ?
 //   bytes leader_ability = 54;                               //NULL ?
 //   bytes limit_break = 55;                                  //NULL ?
@@ -937,7 +937,7 @@ message Unit {
    repeated AbilityReference unique_ability_ref = 62;       //DONE
 //   repeated AbilityReference crew_ability_ref = 63;         //NULL ?
 //   repeated AbilityReference crew_unique_ability_ref = 64;  //NULL ?
-   UnitStat primary_unit_stat = 65;                         //DONE
+   UnitStat unit_stat = 65;                         //DONE
    int64 obtainable_time = 66;                              //DONE
    repeated CrewMember crew = 67;                           //DONE
 //   int32 command_cost = 68;                                 //NULL ?
@@ -945,7 +945,7 @@ message Unit {
    UnitClass unitClass = 70;                                //DONE
 }
 message UnitTierDef {
-   UnitTier tier = 1;                 //DONE
+   UnitTier unit_tier = 1;                 //DONE
    repeated string equipment = 2;     //DONE
    StatDef base_stat = 3;             //DONE
 }
@@ -954,15 +954,15 @@ message UnitTierDef {
 // [[ W ]]
 message War {
    string war_id = 1;                           //DONE
-   CombatType type = 2;                     //DONE
-   CampaignNodeDifficulty difficulty = 3;   //DONE
+   CombatType combat_type = 2;                     //DONE
+   CampaignNodeDifficulty campaign_node_difficulty = 3;   //DONE
    string daily_reset_cap_key = 4;          //DONE
    repeated WarNode node = 5;            //DONE
    OldWar old_war = 6;               //??
 }
 message WarNode {
    string war_node_id = 1;                           //DONE
-   WarNodeType type = 2;                    //DONE
+   WarNodeType war_node_type = 2;                    //DONE
    CombatType combat_type = 3;              //DONE
    Position position = 4;                   //DONE
 }
@@ -987,8 +987,8 @@ message XpTableRow {
 //
 
 // [[ A ]]
-enum AbilityButtonLocationType {
-   NO_AbilityButtonLocationType = 0;
+enum AbilityButtonType {
+   NO_AbilityButtonType = 0;
    ABILITY_STANDARD = 1;
    ABILITY_ADDITIONAL = 2;
    ABILITY_HIDDEN = 3;
@@ -1320,7 +1320,7 @@ enum RequirementType {
    ANY_UNIT_REACHED_MAX_RARITY = 37;
    CURRENT_CHARACTER_READY_FOR_TIER_UP = 38;
    EVENT_ACTIVE = 39;
-   BATTLE_ANY_UNIT_HAS_SHIELD = 40;
+   BATTLE_ANY_UNIT_HAS_PROTECTION = 40;
    CURRENT_CHARACTER_MIN_TIER = 41;
    UNIT_LEVEL_MAX_REQUIREMENT = 42;
    UNIT_LEVEL_MIN_REQUIREMENT = 43;
@@ -1386,15 +1386,6 @@ enum ModStatTier {
    STATMOD_TIER_04 = 4;
    STATMOD_TIER_05 = 5;
 }
-enum SystemModified {
-   NO_SystemModified = 0;
-   SYSTEM_NONE = 1;
-   UNIT_TRAINING = 2;
-}
-enum SystemModifierType {
-   NO_SystemModifierType = 0;
-   TIME_LIMITED = 1;
-}
 
 // [[ T ]]
 enum ThreatLevel {
@@ -1440,8 +1431,8 @@ enum UnitStat {
    UNIT_STAT_ATTACK_CRITICAL_RATING = 14;
    UNIT_STAT_ABILITY_CRITICAL_RATING = 15;
    UNIT_STAT_CRITICAL_DAMAGE = 16;
-   UNIT_STAT_ACCURACY = 17;
-   UNIT_STAT_RESISTANCE = 18;
+   UNIT_STAT_POTENCY_PERCENT_ADDITIVE = 17;
+   UNIT_STAT_TENACITY = 18;
    UNIT_STAT_DODGE_PERCENT_ADDITIVE = 19;
    UNIT_STAT_DEFLECTION_PERCENT_ADDITIVE = 20;
    UNIT_STAT_ATTACK_CRITICAL_PERCENT_ADDITIVE = 21;
@@ -1451,8 +1442,8 @@ enum UnitStat {
    UNIT_STAT_ARMOR_PENETRATION_PERCENT_ADDITIVE = 25;
    UNIT_STAT_SUPPRESSION_PENETRATION_PERCENT_ADDITIVE = 26;
    UNIT_STAT_HEALTH_STEAL = 27;
-   UNIT_STAT_MAX_SHIELD = 28;
-   UNIT_STAT_SHIELD_PENETRATION = 29;
+   UNIT_STAT_MAX_PROTECTION = 28;
+   UNIT_STAT_PROTECTION_PENETRATION = 29;
    UNIT_STAT_HEALTH_REGEN = 30;
    UNIT_STAT_ATTACK_DAMAGE_PERCENT_ADDITIVE = 31;
    UNIT_STAT_ABILITY_POWER_PERCENT_ADDITIVE = 32;
@@ -1469,17 +1460,17 @@ enum UnitStat {
    UNIT_STAT_DEFENSE_PENETRATION = 43;
    UNIT_STAT_EVASION_RATING = 44;
    UNIT_STAT_CRITICAL_RATING = 45;
-   UNIT_STAT_EVASION_NEGATE_RATING = 46;
+   UNIT_STAT_ACCURACY_RATING = 46;
    UNIT_STAT_CRITICAL_NEGATE_RATING = 47;
    UNIT_STAT_OFFENSE_PERCENT_ADDITIVE = 48;
    UNIT_STAT_DEFENSE_PERCENT_ADDITIVE = 49;
    UNIT_STAT_DEFENSE_PENETRATION_PERCENT_ADDITIVE = 50;
    UNIT_STAT_EVASION_PERCENT_ADDITIVE = 51;
-   UNIT_STAT_EVASION_NEGATE_PERCENT_ADDITIVE = 52;
+   UNIT_STAT_ACCURACY_PERCENT_ADDITIVE = 52;
    UNIT_STAT_CRITICAL_CHANCE_PERCENT_ADDITIVE = 53;
    UNIT_STAT_CRITICAL_NEGATE_CHANCE_PERCENT_ADDITIVE = 54;
    UNIT_STAT_MAX_HEALTH_PERCENT_ADDITIVE = 55;
-   UNIT_STAT_MAX_SHIELD_PERCENT_ADDITIVE = 56;
+   UNIT_STAT_MAX_PROTECTION_PERCENT_ADDITIVE = 56;
    UNIT_STAT_SPEED_PERCENT_ADDITIVE = 57;
    UNIT_STAT_COUNTER_ATTACK_RATING = 58;
    UNIT_STAT_TAUNT = 59;

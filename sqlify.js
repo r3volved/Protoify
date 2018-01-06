@@ -51,7 +51,7 @@ async function outputTable(obj, name, prefix, suffix) {
     if( name === 'PlayerArenaSquadUnit' ) { specialKeys = ['playerId','combatType','unitIndex']; }
     if( name === 'PlayerStat' ) { specialKeys = ['playerId','order']; }
     if( name === 'PlayerUnitGear' ) { specialKeys = ['playerUnitId','slot']; }
-    if( name === 'PlayerUnitModStat' ) { specialKeys = ['playerUnitModId','statId']; }
+    if( name === 'PlayerUnitModStat' ) { specialKeys = ['playerUnitModId','unitStat']; }
     if( name === 'PlayerUnitSkill' ) { specialKeys = ['playerUnitId','skillId']; }
     
     //APPEND TABLE CREATE STATEMENT  
@@ -60,7 +60,7 @@ async function outputTable(obj, name, prefix, suffix) {
     if( name === 'PlayerArenaSquadUnit' ) {
         //SPECIAL CASE FOR MOD STAT DETAILS - SPLIT INTO FOUR COLUMNS
         retStr += prefix+'`playerId` VARCHAR(128) COLLATE utf8_bin NOT NULL,'+suffix;
-        retStr += prefix+'`combatType` INT(32) COLLATE utf8_bin NOT NULL,'+suffix;
+        retStr += prefix+'`combatType` VARCHAR(256) COLLATE utf8_bin NOT NULL,'+suffix;
         retStr += prefix+'`unitIndex` INT(32) COLLATE utf8_bin NOT NULL,'+suffix;
         fks += fks.length === 0 ? 'FOREIGN KEY (`playerId`) REFERENCES `Player`(`playerId`)' : ', '+suffix+'FOREIGN KEY (`playerId`) REFERENCES `Player`(`playerId`)';
         pks = specialKeys;
@@ -84,15 +84,14 @@ async function outputTable(obj, name, prefix, suffix) {
             retStr += prefix+'`modStatType` INT(32) COLLATE utf8_bin NULL,'+suffix;
             retStr += prefix+'`modSomething` INT(32) COLLATE utf8_bin NULL,'+suffix;
             retStr += prefix+'`modSomethingTwo` INT(32) COLLATE utf8_bin NULL,'+suffix;
-            retStr += prefix+'`modSomethingThree` INT(32) COLLATE utf8_bin NULL,'+suffix;
+            retStr += prefix+'`modStatQuality` INT(32) COLLATE utf8_bin NULL,'+suffix;
 
         } else if( field.name === 'modStatDetails' ) {
             //SPECIAL CASE FOR MOD STAT DETAILS - SPLIT INTO FOUR COLUMNS
-            retStr += prefix+'`statId` INT(32) COLLATE utf8_bin NOT NULL,'+suffix;
+            retStr += prefix+'`unitStat` VARCHAR(256) COLLATE utf8_bin NOT NULL,'+suffix;
             retStr += prefix+'`statValue` BIGINT COLLATE utf8_bin NULL,'+suffix;
 
-            fks += fks.length === 0 ? 'FOREIGN KEY (`statId`) REFERENCES `Stat`(`statId`)' : ', '+suffix+'FOREIGN KEY (`statId`) REFERENCES `Stat`(`statId`)';
-            pks.push('`statId`');
+            pks.push('`unitStat`');
             
         } else {
             //APPEND EACH FIELD
@@ -151,6 +150,40 @@ async function outputTable(obj, name, prefix, suffix) {
 
 }
 
+async function outputEnums() {
+    
+    let filecontent = "DROP TABLE IF EXISTS `Enum`;\n" 
+    filecontent += "CREATE TABLE IF NOT EXISTS `Enum` ( ";
+    filecontent += "`enumName` VARCHAR(128) COLLATE utf8_bin NOT NULL, ";
+    filecontent += "`enumInt` INT(32) COLLATE utf8_bin NOT NULL, ";
+    filecontent += "`enumText` VARCHAR(256) COLLATE utf8_bin NOT NULL, ";
+    filecontent += "PRIMARY KEY( `enumName`, `enumInt` ) ) ";
+    filecontent += "ENGINE=InnoDB CHARSET=utf8 COLLATE=utf8_bin;";
+    filecontent += "\n\n"; 
+        
+    filecontent += "INSERT INTO `Enum` VALUES\n";
+    
+    let jfile = {};
+    for( let i = 0; i < template.enumVals.length; ++i ) {
+        
+        jfile[template.enumVals[i][0]] = jfile[template.enumVals[i][0]] || [];
+        jfile[template.enumVals[i][0]][template.enumVals[i][1]] = template.enumVals[i][2];
+        
+        filecontent += i !== 0 ? ',\n  ' : '  ';
+        template.enumVals[i][0] = "'"+template.enumVals[i][0]+"'";
+        template.enumVals[i][2] = "'"+template.enumVals[i][2]+"'";
+                
+        filecontent += "( "+template.enumVals[i].join(', ')+" )";
+    }
+    filecontent += "\nON DUPLICATE KEY UPDATE `enumText`=VALUES(`enumText`);";
+    
+    //OUTPUT FORMATTED CONTENTS TO OUTFILE.sql
+    await fs.writeFileSync('./enums.sql', filecontent, 'utf8');
+    await fs.writeFileSync('./sql.classes/sql.Enums.json', JSON.stringify(jfile,'',' '), 'utf8');
+    return true;
+    
+}
+
 async function outputInsert(obj, name, prefix, suffix) {
 
     prefix = prefix || '';
@@ -163,7 +196,7 @@ async function outputInsert(obj, name, prefix, suffix) {
     if( name === 'PlayerArenaSquadUnit' ) { specialKeys = ['playerId','combatType','unitIndex']; }
     if( name === 'PlayerStat' ) { specialKeys = ['playerId','order']; }
     if( name === 'PlayerUnitGear' ) { specialKeys = ['playerUnitId','slot']; }
-    if( name === 'PlayerUnitModStat' ) { specialKeys = ['playerUnitModId','statId']; }
+    if( name === 'PlayerUnitModStat' ) { specialKeys = ['playerUnitModId','unitStat']; }
     if( name === 'PlayerUnitSkill' ) { specialKeys = ['playerUnitId','skillId']; }
     
     let retStr = '';
@@ -196,20 +229,20 @@ async function outputInsert(obj, name, prefix, suffix) {
                 
                 values += values.length === 0 ? prefix+'`modStatId`=VALUES(`modStatId`)' : ','+prefix+'`modStatId`=VALUES(`modStatId`)';
                 values += values.length === 0 ? prefix+'`modSetId`=VALUES(`modSetId`)' : ','+prefix+'`modSetId`=VALUES(`modSetId`)';
-                values += values.length === 0 ? prefix+'`modSetId`=VALUES(`modQuality`)' : ','+prefix+'`modQuality`=VALUES(`modQuality`)';
-                values += values.length === 0 ? prefix+'`modSetId`=VALUES(`modSlot`)' : ','+prefix+'`modSlot`=VALUES(`modSlot`)';
+                values += values.length === 0 ? prefix+'`modQuality`=VALUES(`modQuality`)' : ','+prefix+'`modQuality`=VALUES(`modQuality`)';
+                values += values.length === 0 ? prefix+'`modSlot`=VALUES(`modSlot`)' : ','+prefix+'`modSlot`=VALUES(`modSlot`)';
                 
             } else if( field.name === 'modStatDefinition' ) {
                 //SPECIAL CASE FOR MOD STAT DEFINITION - SPLIT INTO FOUR COLUMNS
                 fields += fields.length === 0 ? prefix+'`modStatType`' : ','+prefix+'`modStatType`';
                 fields += fields.length === 0 ? prefix+'`modSomething`' : ','+prefix+'`modSomething`';
                 fields += fields.length === 0 ? prefix+'`modSomethingTwo`' : ','+prefix+'`modSomethingTwo`';                
-                fields += fields.length === 0 ? prefix+'`modSomethingThree`' : ','+prefix+'`modSomethingThree`';                
+                fields += fields.length === 0 ? prefix+'`modStatQuality`' : ','+prefix+'`modStatQuality`';                
                 
                 values += values.length === 0 ? prefix+'`modStatType`=VALUES(`modStatType`)' : ','+prefix+'`modStatType`=VALUES(`modStatType`)';
                 values += values.length === 0 ? prefix+'`modSomething`=VALUES(`modSomething`)' : ','+prefix+'`modSomething`=VALUES(`modSomething`)';
                 values += values.length === 0 ? prefix+'`modSomethingTwo`=VALUES(`modSomethingTwo`)' : ','+prefix+'`modSomethingTwo`=VALUES(`modSomethingTwo`)';
-                values += values.length === 0 ? prefix+'`modSomethingThree`=VALUES(`modSomethingThree`)' : ','+prefix+'`modSomethingThree`=VALUES(`modSomethingThree`)';
+                values += values.length === 0 ? prefix+'`modStatQuality`=VALUES(`modStatQuality`)' : ','+prefix+'`modStatQuality`=VALUES(`modStatQuality`)';
                 
             } else {
                 fields += fields.length === 0 ? prefix+'`'+field.name+'`' : ','+prefix+'`'+field.name+'`';        
@@ -224,7 +257,7 @@ async function outputInsert(obj, name, prefix, suffix) {
             
             if( field.name === 'modStatDetails' ) {
                 //SPECIAL CASE FOR MOD STAT DETAILS - SPLIT INTO FOUR COLUMNS
-                fields += fields.length === 0 ? prefix+'`statId`' : ','+prefix+'`statId`';                
+                fields += fields.length === 0 ? prefix+'`unitStat`' : ','+prefix+'`unitStat`';                
                 fields += fields.length === 0 ? prefix+'`statValue`' : ','+prefix+'`statValue`';                
                 
                 values += values.length === 0 ? prefix+'`statValue`=VALUES(`statValue`)' : ','+prefix+'`statValue`=VALUES(`statValue`)';
@@ -264,7 +297,8 @@ async function outputClass(obj, name, prefix, suffix) {
     output += '  constructor(settings) {\n\n';
     output += '    super(settings);\n';
     output += `    this.table = "${table}";\n`;
-    output += `    this.insert = "${insert}";\n\n`;
+    output += `    this.insert = "${insert}";\n`;
+    output += `    this.enums = require('./sql.Enums.json');\n\n`;    
     output += '  }\n\n';
     
     //init bubble()
@@ -276,7 +310,8 @@ async function outputClass(obj, name, prefix, suffix) {
     output += '         data = Array.isArray(data) ? data : [ data ];\n\n';
     output += '         let result = null;\n';
     output += '         let ofkey = !!fkey ? Object.assign({},fkey) : null;\n';
-    output += '         fkey = null;\n\n';         
+    output += '         fkey = null;\n\n';
+    output += '         let val = null;\n';
     output += '         let payload = {};\n';
     output += '             payload["verbose"] = this.verbose;\n';
     output += '             payload["hush"] = this.hush;\n';
@@ -303,7 +338,8 @@ async function outputClass(obj, name, prefix, suffix) {
 
     if( name === 'PlayerArenaSquadUnit' ) {
         output += `             inner.push(data[i].playerId);\n\n`;
-        output += `             inner.push(data[i].combatType);\n\n`;
+        output += `             let val = data[i].combatType || 0;\n`;
+        output += `             inner.push(this.enums.CombatType[val]);\n\n`;
         output += `             inner.push(i+1);\n\n`;
     }
     
@@ -330,17 +366,28 @@ async function outputClass(obj, name, prefix, suffix) {
                         output += `             inner.push(modQuality);\n`;
                         output += `             inner.push(modSlot);\n\n`;
                     } else if( field.name === 'modStatDefinition' ) {
-                        output += `             let [ modStatType, modSomething, modSomethingTwo, modSomethingThree ] = data[i].${field.name}.split('');\n`; 
+                        output += `             let [ modStatType, modSomething, modSomethingTwo, modStatQuality ] = data[i].${field.name}.split('');\n`; 
                         output += `             inner.push(modStatType);\n`;
                         output += `             inner.push(modSomething);\n`;
                         output += `             inner.push(modSomethingTwo);\n`;
-                        output += `             inner.push(modSomethingThree);\n\n`;
+                        output += `             inner.push(modStatQuality);\n\n`;
                     } else if( field.name === 'modStatDetails' ) {
-                        output += `             inner.push(data[i].${field.name}.statId);\n`;
+                        output += `             inner.push(this.enums.UnitStat[data[i].${field.name}.unitStat]);\n`;
                         output += `             inner.push(data[i].${field.name}.statValue);\n\n`;
 
                     } else {
-                        output += `             inner.push(data[i].${field.name});\n\n`;
+                        
+                        let en = field.name.replace(/(.*)Enum/g,'$1');
+                        en = en.charAt(0).toUpperCase()+en.slice(1);
+                        
+                        if( template.enums.includes(en) ) {
+                            output += `             val = data[i].${field.name} || 0;\n`;
+                            //output += `             console.log( this.enums.${en}[val] );\n`;
+                            output += `             inner.push(this.enums.${en}[val]);\n\n`;                            
+                        } else {
+                            output += `             inner.push(data[i].${field.name});\n\n`;
+                        }
+                        
                     }
                     
                 }
@@ -361,7 +408,7 @@ async function outputClass(obj, name, prefix, suffix) {
         } else if( f !== 'undefined' ) {
             
             if( field.name === 'modStatDetails' ) {
-                output += `             inner.push(data[i].${field.name}.statId);\n`;
+                output += `             inner.push(this.enums.UnitStat[data[i].${field.name}.unitStat]);\n`;
                 output += `             inner.push(data[i].${field.name}.statValue);\n\n`;
 
             } else {
@@ -464,15 +511,10 @@ async function output() {
     
     let filecontent = ""; 
     for( let k in fileObj ) {
-        
+                 
         if( flags.includes('t') ) { filecontent += await outputTable(fileObj[k], k, prefix, suffix) +'\n'; }
         if( flags.includes('i') ) { filecontent += await outputInsert(fileObj[k], k, prefix, suffix) +'\n'; }
-        
-        if( flags.includes('c') ) {
-            
-            filecontent = await outputClass(fileObj[k], k, prefix, suffix);
-            
-        }
+        if( flags.includes('c') ) { filecontent = await outputClass(fileObj[k], k, prefix, suffix); }
         
     }    
     
@@ -482,6 +524,8 @@ async function output() {
         await fs.writeFileSync('./'+outfile+'.json', JSON.stringify(template,""," "), 'utf8');    
     }
     
+    if( flags.includes('e') ) { filecontent = await outputEnums(); } 
+        
     console.log('Complete');
     
 }
@@ -491,13 +535,18 @@ async function getContainers( data ) {
     
     try {
         template.tables = {};        
+        template.enumVals = [];
         template.enums = [];
         template.tnames = [];
         
+        let oopen = false;
+        
         for( let i = 0; i < data.length; ++i ) {
+            if( data[i].trim() === '}' ) { oopen = false; continue; }
             if( data[i].trim().match(/enum\s\w+\s*\{/gi) ) {
                 let ename = data[i].trim().replace(/enum\s(\w+)\s*\{/gi, '$1');
-                template.enums.push(ename);                
+                template.enums.push(ename);
+                oopen = true;
                 continue;
             }
             if( data[i].trim().match(/message\s\w+\s*\{/gi) ) {
@@ -509,6 +558,14 @@ async function getContainers( data ) {
                 template.tables[tname] = table;
                 template.tnames.push(tname);
                 continue;
+            }
+            
+            if( oopen ) {
+                let [ txt, key ] = data[i].split('=');
+                let name = template.enums[template.enums.length-1];
+                txt = txt.trim();
+                key = key.trim().replace(/(\d+);/,'$1');
+                template.enumVals.push([ name, key, txt ]); 
             }
         }  
         
@@ -590,7 +647,7 @@ async function getFields( data ) {
                         field.name = !repeated ? fname : fname.replace('List','')+'List';
                         field.type = "TEXT";
                         field.size = 0;                
-                    } else if( ftype.includes("int32") || template.enums.includes(ftype) ) {
+                    } else if( ftype.includes("int32") ) {
                         if( repeated ) {
                             field.type = "TEXT";
                             field.size = 0;
@@ -606,13 +663,13 @@ async function getFields( data ) {
                             field.type = "BIGINT";
                             field.size = 64;
                         }
-                    } else if( ftype === "string" ) {
+                    } else if( ftype === "string" || template.enums.includes(ftype) ) {
                         if( repeated ) {
                             field.type = "TEXT";
                             field.size = 0;
                         } else {
                             field.type = "VARCHAR";
-                            field.size = 128;
+                            field.size = 256;
                         }
                     } else if( ftype === "bool" ) {
                         field.type = "BOOLEAN";
