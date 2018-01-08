@@ -8,6 +8,57 @@ let outdata = "";
 let outstream = '';
 let flags = [];
 
+let specialKeys = {};
+specialKeys.AbilityReference = ['abilityId','unitId'];
+specialKeys.AbilityTier = [ 'abilityId', 'descKey' ];
+specialKeys.ActionLink = [ 'challengeId', 'link' ];
+specialKeys.BattleCondition = [ 'effectId', 'conditionType', 'conditionValue' ];
+specialKeys.BattleEnvironment = [ 'prefab' ];
+specialKeys.BucketItem = [ 'itemId', 'itemType', 'recipeId' ];
+specialKeys.CampaignElementIdentifier = [ 'campaignId', 'campaignMapId', 'campaignMissionId' ];
+specialKeys.CrewMember = [ 'unitId', 'slot' ];
+
+specialKeys.EffectReference = [ 'effectId', 'abilityId', 'contextIndex', 'maxBonusMove' ];
+specialKeys.EffectTag = [ 'tag', 'abilityId' ];
+specialKeys.EffectTagCriteria = [ 'tag', 'exclude' ];
+specialKeys.EffectTarget = [ 'effectId', 'effectTargetUnitSelect' ];
+//specialKeys.EffectTargetCategoryCriteria = [ 'exclude' ];
+specialKeys.EventSampling = [ 'eventId' ];
+//specialKeys.GearItems = [];
+//specialKeys.GuildBanner = [];
+specialKeys.GuildRaidConfig = [ 'guildRaidId' ];
+specialKeys.GuildRaidRosterRefresh = [ 'type' ];
+specialKeys.HelpEntry = [ 'helpType' ];
+specialKeys.HelpTitle = [ 'titleKey' ];
+specialKeys.HomeData = [ 'nameKey' ];
+specialKeys.LookupActionlink = [ 'descKey' ];
+specialKeys.ModSetBonus = [ 'modSetId' ];
+specialKeys.OldWar = [ 'warId' ];
+specialKeys.PointsMap = [ 'key' ];
+specialKeys.Position = [ 'warNodeId' ];
+specialKeys.SkillDefinition = [ 'skillId' ];
+specialKeys.SkillDefinitionReference = [ 'skillId', 'unitId' ];
+specialKeys.SkillTierDefinition = [ 'recipeId' ];
+//specialKeys.Stat = [];
+specialKeys.StatDef = [ 'unitId' ];
+specialKeys.StatValueRange = [ 'unitStat', 'battleUnitStateStat' ];
+specialKeys.StatValueRangeNumber = [ 'value', 'inclusive' ];
+specialKeys.TargetingWeight = [ 'type', 'param', 'valueDecimal', 'targetingSetId' ];
+specialKeys.Territory = [ 'combatType', 'image', 'territoryBattleEventId' ];
+//specialKeys.TerritoryPoints = [];
+specialKeys.TerritoryRequirement = [ 'territoryDetailsId' ];
+specialKeys.TerritoryRequirementKey = [ 'territoryDetailsId' ];
+specialKeys.TerritoryWars = [ 'nameKey' ];
+specialKeys.UnitTierDef = [ 'unitId', 'unitTier' ];
+
+specialKeys.PlayerArena = ['playerId','combatType'];
+specialKeys.PlayerArenaSquadUnit = ['playerId','combatType','unitIndex'];
+specialKeys.PlayerStat = ['playerId','order'];
+specialKeys.PlayerUnitGear = ['playerUnitId','slot']; 
+specialKeys.PlayerUnitModStat = ['playerUnitModId','unitStat'];
+specialKeys.PlayerUnitSkill = ['playerUnitId','skillId'];
+
+
 
 async function run( args ) {
     
@@ -46,21 +97,22 @@ async function outputTable(obj, name, prefix, suffix) {
     let pks = [];
     let retStr = '';
     
-    let specialKeys = [];
+/*    let specialKeys = [];
     if( name === 'PlayerArena' ) { specialKeys = ['playerId','combatType']; }
     if( name === 'PlayerArenaSquadUnit' ) { specialKeys = ['playerId','combatType','unitIndex']; }
     if( name === 'PlayerStat' ) { specialKeys = ['playerId','order']; }
     if( name === 'PlayerUnitGear' ) { specialKeys = ['playerUnitId','slot']; }
     if( name === 'PlayerUnitModStat' ) { specialKeys = ['playerUnitModId','unitStat']; }
     if( name === 'PlayerUnitSkill' ) { specialKeys = ['playerUnitId','skillId']; }
-    
+    if( name === 'AbilityReference' ) { specialKeys = ['abilityId','unitId']; }
+*/
     //APPEND TABLE CREATE STATEMENT  
     retStr += 'CREATE TABLE IF NOT EXISTS `'+name+'` ('+suffix;
     
     if( name === 'PlayerArenaSquadUnit' ) {
         //SPECIAL CASE FOR MOD STAT DETAILS - SPLIT INTO FOUR COLUMNS
         retStr += prefix+'`playerId` VARCHAR(128) COLLATE utf8_bin NOT NULL,'+suffix;
-        retStr += prefix+'`combatType` VARCHAR(256) COLLATE utf8_bin NOT NULL,'+suffix;
+        retStr += prefix+'`combatType` VARCHAR(64) COLLATE utf8_bin NOT NULL,'+suffix;
         retStr += prefix+'`unitIndex` INT(32) COLLATE utf8_bin NOT NULL,'+suffix;
         fks += fks.length === 0 ? 'FOREIGN KEY (`playerId`) REFERENCES `Player`(`playerId`)' : ', '+suffix+'FOREIGN KEY (`playerId`) REFERENCES `Player`(`playerId`)';
         pks = specialKeys;
@@ -88,14 +140,14 @@ async function outputTable(obj, name, prefix, suffix) {
 
         } else if( field.name === 'modStatDetails' ) {
             //SPECIAL CASE FOR MOD STAT DETAILS - SPLIT INTO FOUR COLUMNS
-            retStr += prefix+'`unitStat` VARCHAR(256) COLLATE utf8_bin NOT NULL,'+suffix;
+            retStr += prefix+'`unitStat` VARCHAR(64) COLLATE utf8_bin NOT NULL,'+suffix;
             retStr += prefix+'`statValue` BIGINT COLLATE utf8_bin NULL,'+suffix;
 
             pks.push('`unitStat`');
             
         } else {
             //APPEND EACH FIELD
-            if( specialKeys.includes(field.name) ) { field.condition = "NOT NULL"; }
+            if( specialKeys[name] && specialKeys[name].includes(field.name) ) { field.condition = "NOT NULL"; }
             if( field.type === "INT" || field.type === "BIGINT" || field.type === "VARCHAR" ) {                 
                 retStr += prefix+'`'+field.name+'` '+field.type+'('+field.size+') '+field.collation+' '+field.condition+','+suffix;
             } else if( field.type === "BOOLEAN" || field.type === "TIMESTAMP" || field.type === "TEXT" ) {
@@ -103,7 +155,7 @@ async function outputTable(obj, name, prefix, suffix) {
             }
             
             //IF FIELD IS PKEY, ADD TO LIST
-            if( field.pkey || specialKeys.includes(field.name) ) {
+            if( field.pkey || (specialKeys[name] && specialKeys[name].includes(field.name)) ) {
                 pks.push('`'+field.name+'`');
             }
             
@@ -154,9 +206,9 @@ async function outputEnums() {
     
     let filecontent = "DROP TABLE IF EXISTS `Enum`;\n" 
     filecontent += "CREATE TABLE IF NOT EXISTS `Enum` ( ";
-    filecontent += "`enumName` VARCHAR(128) COLLATE utf8_bin NOT NULL, ";
+    filecontent += "`enumName` VARCHAR(64) COLLATE utf8_bin NOT NULL, ";
     filecontent += "`enumInt` INT(32) COLLATE utf8_bin NOT NULL, ";
-    filecontent += "`enumText` VARCHAR(256) COLLATE utf8_bin NOT NULL, ";
+    filecontent += "`enumText` VARCHAR(64) COLLATE utf8_bin NOT NULL, ";
     filecontent += "PRIMARY KEY( `enumName`, `enumInt` ) ) ";
     filecontent += "ENGINE=InnoDB CHARSET=utf8 COLLATE=utf8_bin;";
     filecontent += "\n\n"; 
@@ -191,14 +243,21 @@ async function outputInsert(obj, name, prefix, suffix) {
     
     let pks = [];
     
-    let specialKeys = [];
+    /*let specialKeys = [];
     if( name === 'PlayerArena' ) { specialKeys = ['playerId','combatType']; }
     if( name === 'PlayerArenaSquadUnit' ) { specialKeys = ['playerId','combatType','unitIndex']; }
     if( name === 'PlayerStat' ) { specialKeys = ['playerId','order']; }
     if( name === 'PlayerUnitGear' ) { specialKeys = ['playerUnitId','slot']; }
     if( name === 'PlayerUnitModStat' ) { specialKeys = ['playerUnitModId','unitStat']; }
     if( name === 'PlayerUnitSkill' ) { specialKeys = ['playerUnitId','skillId']; }
+    */
+/*    let specialTables = [
+        'AbilityReference',
+        'PlayerArenaSquadUnit'
+    ];
     
+    if( name === 'AbilityReference' ) { specialKeys = ['abilityId','unitId']; }
+ */   
     let retStr = '';
     let values = '';
     let fields = '';
@@ -247,7 +306,7 @@ async function outputInsert(obj, name, prefix, suffix) {
             } else {
                 fields += fields.length === 0 ? prefix+'`'+field.name+'`' : ','+prefix+'`'+field.name+'`';        
                 
-                if( !field.pkey && !specialKeys.includes(field.name) ) {
+                if( (!field.pkey && !specialKeys[name]) || (!field.pkey && specialKeys[name] && !specialKeys[name].includes(field.name)) ) {
                     values += values.length === 0 ? prefix+'`'+field.name+'`=VALUES(`'+field.name+'`)' : ','+prefix+'`'+field.name+'`=VALUES(`'+field.name+'`)';                
                 } else {
                     pks.push(field);
@@ -270,7 +329,7 @@ async function outputInsert(obj, name, prefix, suffix) {
     //CLOSE INSERT STATEMENT
     retStr += suffix+fields+prefix+suffix+') VALUES ?';
     
-    if( name === 'PlayerArenaSquadUnit' ) { pks = specialKeys; }
+    if( specialKeys[name] ) { pks = specialKeys[name]; }
     if( pks.length > 0 ) {
         retStr += suffix+' ON DUPLICATE KEY UPDATE'+suffix+values;
     } 
@@ -669,7 +728,7 @@ async function getFields( data ) {
                             field.size = 0;
                         } else {
                             field.type = "VARCHAR";
-                            field.size = 256;
+                            field.size = 64;
                         }
                     } else if( ftype === "bool" ) {
                         field.type = "BOOLEAN";
