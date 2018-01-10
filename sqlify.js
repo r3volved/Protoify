@@ -97,16 +97,7 @@ async function outputTable(obj, name, prefix, suffix) {
     let pks = [];
     let retStr = '';
     
-/*    let specialKeys = [];
-    if( name === 'PlayerArena' ) { specialKeys = ['playerId','combatType']; }
-    if( name === 'PlayerArenaSquadUnit' ) { specialKeys = ['playerId','combatType','unitIndex']; }
-    if( name === 'PlayerStat' ) { specialKeys = ['playerId','order']; }
-    if( name === 'PlayerUnitGear' ) { specialKeys = ['playerUnitId','slot']; }
-    if( name === 'PlayerUnitModStat' ) { specialKeys = ['playerUnitModId','unitStat']; }
-    if( name === 'PlayerUnitSkill' ) { specialKeys = ['playerUnitId','skillId']; }
-    if( name === 'AbilityReference' ) { specialKeys = ['abilityId','unitId']; }
-*/
-    //APPEND TABLE CREATE STATEMENT  
+   //APPEND TABLE CREATE STATEMENT  
     retStr += 'CREATE TABLE IF NOT EXISTS `'+name+'` ('+suffix;
     
     if( name === 'PlayerArenaSquadUnit' ) {
@@ -242,22 +233,7 @@ async function outputInsert(obj, name, prefix, suffix) {
     suffix = suffix || '';
     
     let pks = [];
-    
-    /*let specialKeys = [];
-    if( name === 'PlayerArena' ) { specialKeys = ['playerId','combatType']; }
-    if( name === 'PlayerArenaSquadUnit' ) { specialKeys = ['playerId','combatType','unitIndex']; }
-    if( name === 'PlayerStat' ) { specialKeys = ['playerId','order']; }
-    if( name === 'PlayerUnitGear' ) { specialKeys = ['playerUnitId','slot']; }
-    if( name === 'PlayerUnitModStat' ) { specialKeys = ['playerUnitModId','unitStat']; }
-    if( name === 'PlayerUnitSkill' ) { specialKeys = ['playerUnitId','skillId']; }
-    */
-/*    let specialTables = [
-        'AbilityReference',
-        'PlayerArenaSquadUnit'
-    ];
-    
-    if( name === 'AbilityReference' ) { specialKeys = ['abilityId','unitId']; }
- */   
+      
     let retStr = '';
     let values = '';
     let fields = '';
@@ -506,7 +482,7 @@ async function outputClass(obj, name, prefix, suffix) {
         
         //Insert table if not exists
         output += '         result = await this.insertTable( this.table );\n\n';
-        output += '         result = await this.insertSQL( this.insert, arr );\n\n';
+        output += '         result = await this.insertBulkSQL( this.insert, arr );\n\n';
         output += '         if( result && this.verbose ) { console.info(` + ${arr.length} '+name+'(s) inserted`); }\n\n';
         output += '         return result;\n\n';
     } else {
@@ -728,7 +704,7 @@ async function getFields( data ) {
                             field.size = 0;
                         } else {
                             field.type = "VARCHAR";
-                            field.size = 64;
+                            field.size = template.enums.includes(ftype) ? 64 : 128;
                         }
                     } else if( ftype === "bool" ) {
                         field.type = "BOOLEAN";
